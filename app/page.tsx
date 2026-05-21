@@ -12,7 +12,7 @@ export default function Home() {
   const autoplayTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isHoveredRef = useRef(false);
 
-  const animateScroll = (target: number, duration = 2500) => {
+  const animateScroll = (target: number, duration = 1800) => {
     if (sliderRef.current) {
       const container = sliderRef.current;
       
@@ -24,15 +24,16 @@ export default function Home() {
       const change = target - start;
       let startTime: number | null = null;
 
-      const easeInOutCubic = (t: number) => {
-        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      // easeOutCubic starts immediately at full speed and gracefully decelerates to a stop
+      const easeOutCubic = (t: number) => {
+        return 1 - Math.pow(1 - t, 3);
       };
 
       const step = (timestamp: number) => {
         if (!startTime) startTime = timestamp;
         const elapsed = timestamp - startTime;
         const progress = Math.min(elapsed / duration, 1);
-        const easedProgress = easeInOutCubic(progress);
+        const easedProgress = easeOutCubic(progress);
 
         container.scrollLeft = start + change * easedProgress;
 
@@ -61,7 +62,7 @@ export default function Home() {
       const maxScroll = container.scrollWidth - container.clientWidth;
       const target = Math.max(0, Math.min(end, maxScroll));
       
-      animateScroll(target, 2500); // Slow transition (2.5s)
+      animateScroll(target, 1800); // Highly responsive yet slow (1.8s)
       resetAutoplay();
     }
   };
@@ -79,11 +80,11 @@ export default function Home() {
         const maxScroll = container.scrollWidth - container.clientWidth;
         
         let target = container.scrollLeft + scrollAmount;
-        let duration = 2500; // Slow transition (2.5s)
+        let duration = 1800; // Responsive slow transition (1.8s)
 
         if (container.scrollLeft >= maxScroll - 10) {
           target = 0;
-          duration = 3500; // Extra slow returning transition
+          duration = 2600; // Extra slow returning transition
         }
 
         animateScroll(target, duration);
