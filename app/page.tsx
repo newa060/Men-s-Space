@@ -249,10 +249,10 @@ export default function Home() {
           {instagramPosts.map((src, index) => (
             <motion.div
               key={index}
-              initial={{ opacity: 0, x: 80 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 1.4, delay: index * 0.15, ease: [0.25, 1, 0.5, 1] }}
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "200px" }}
+              transition={{ duration: 0.6, delay: index * 0.05, ease: "easeOut" }}
               className="flex-none w-72 md:w-96 aspect-square bg-background relative overflow-hidden group border border-outline-variant/30"
             >
               <Image
