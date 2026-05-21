@@ -3,21 +3,94 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
-import { motion } from "framer-motion";
-import { useRef } from "react";
+import { motion, animate } from "framer-motion";
+import { useRef, useEffect } from "react";
 
 export default function Home() {
   const sliderRef = useRef<HTMLDivElement>(null);
+  const scrollAnimationRef = useRef<any>(null);
+  const autoplayTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isHoveredRef = useRef(false);
 
-  const scrollSlider = (direction: "left" | "right") => {
+  const animateScroll = (target: number, customDuration = 1.6) => {
     if (sliderRef.current) {
-      const scrollAmount = 350;
-      sliderRef.current.scrollBy({
-        left: direction === "left" ? -scrollAmount : scrollAmount,
-        behavior: "smooth",
+      const container = sliderRef.current;
+      if (scrollAnimationRef.current) {
+        scrollAnimationRef.current.stop();
+      }
+      const start = container.scrollLeft;
+      scrollAnimationRef.current = animate(start, target, {
+        duration: customDuration,
+        ease: [0.25, 1, 0.5, 1], // Sleek, custom cubic-bezier ease
+        onUpdate: (value) => {
+          container.scrollLeft = value;
+        },
+        onComplete: () => {
+          scrollAnimationRef.current = null;
+        }
       });
     }
   };
+
+  const scrollSlider = (direction: "left" | "right") => {
+    if (sliderRef.current) {
+      const container = sliderRef.current;
+      const card = container.querySelector("div");
+      const cardWidth = card ? card.clientWidth : 384;
+      const gap = 24; // gap-6 is 24px
+      const scrollAmount = cardWidth + gap;
+      
+      const start = container.scrollLeft;
+      const end = direction === "left" ? start - scrollAmount : start + scrollAmount;
+      
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      const target = Math.max(0, Math.min(end, maxScroll));
+      
+      animateScroll(target, 1.6);
+      resetAutoplay();
+    }
+  };
+
+  const startAutoplay = () => {
+    stopAutoplay();
+    autoplayTimerRef.current = setInterval(() => {
+      if (isHoveredRef.current) return;
+      if (sliderRef.current) {
+        const container = sliderRef.current;
+        const card = container.querySelector("div");
+        const cardWidth = card ? card.clientWidth : 384;
+        const gap = 24;
+        const scrollAmount = cardWidth + gap;
+        const maxScroll = container.scrollWidth - container.clientWidth;
+        
+        let target = container.scrollLeft + scrollAmount;
+        let duration = 1.6;
+
+        if (container.scrollLeft >= maxScroll - 10) {
+          target = 0;
+          duration = 2.2; // Extra slow and elegant return transition
+        }
+
+        animateScroll(target, duration);
+      }
+    }, 5000);
+  };
+
+  const stopAutoplay = () => {
+    if (autoplayTimerRef.current) {
+      clearInterval(autoplayTimerRef.current);
+      autoplayTimerRef.current = null;
+    }
+  };
+
+  const resetAutoplay = () => {
+    startAutoplay();
+  };
+
+  useEffect(() => {
+    startAutoplay();
+    return () => stopAutoplay();
+  }, []);
 
   const categories = [
     {
@@ -152,11 +225,17 @@ export default function Home() {
 
         <div
           ref={sliderRef}
+          onMouseEnter={() => { isHoveredRef.current = true; }}
+          onMouseLeave={() => { isHoveredRef.current = false; }}
           className="flex gap-6 overflow-x-auto no-scrollbar px-5 md:px-16 cursor-grab active:cursor-grabbing max-w-screen-xl mx-auto"
         >
           {instagramPosts.map((src, index) => (
-            <div
+            <motion.div
               key={index}
+              initial={{ opacity: 0, x: 80 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 1.4, delay: index * 0.15, ease: [0.25, 1, 0.5, 1] }}
               className="flex-none w-72 md:w-96 aspect-square bg-background relative overflow-hidden group border border-outline-variant/30"
             >
               <Image
@@ -166,7 +245,7 @@ export default function Home() {
                 className="object-cover grayscale brightness-90 group-hover:grayscale-0 group-hover:scale-[1.02] transition-all duration-700"
                 sizes="(max-width: 768px) 288px, 384px"
               />
-            </div>
+            </motion.div>
           ))}
         </div>
       </section>
