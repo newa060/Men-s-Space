@@ -40,7 +40,7 @@ export default function Navbar() {
           scrolled ? "h-14" : "h-16"
         }`}
       >
-        {/* Left: Desktop Nav Links */}
+        {/* Left: Desktop Nav Links & Mobile Logo */}
         <div className="flex-1 flex items-center">
           <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => {
@@ -60,13 +60,22 @@ export default function Navbar() {
               );
             })}
           </div>
+          {/* Mobile Logo */}
+          <div className="md:hidden flex items-center">
+            <Link
+              href="/"
+              className="font-bold text-primary tracking-tighter text-xl whitespace-nowrap"
+            >
+              MEN&apos;S SPACE
+            </Link>
+          </div>
         </div>
 
-        {/* Center: Logo */}
-        <div className="absolute left-1/2 -translate-x-1/2">
+        {/* Center: Logo (Desktop) */}
+        <div className="hidden md:block absolute left-1/2 -translate-x-1/2">
           <Link
             href="/"
-            className="font-bold text-primary tracking-tighter text-xl md:text-2xl"
+            className="font-bold text-primary tracking-tighter text-2xl"
           >
             MEN&apos;S SPACE
           </Link>
