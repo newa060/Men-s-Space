@@ -12,23 +12,38 @@ export default function Home() {
   const autoplayTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isHoveredRef = useRef(false);
 
-  const animateScroll = (target: number, customDuration = 1.6) => {
+  const animateScroll = (target: number, duration = 2500) => {
     if (sliderRef.current) {
       const container = sliderRef.current;
+      
       if (scrollAnimationRef.current) {
-        scrollAnimationRef.current.stop();
+        cancelAnimationFrame(scrollAnimationRef.current);
       }
+
       const start = container.scrollLeft;
-      scrollAnimationRef.current = animate(start, target, {
-        duration: customDuration,
-        ease: [0.25, 1, 0.5, 1], // Sleek, custom cubic-bezier ease
-        onUpdate: (value) => {
-          container.scrollLeft = value;
-        },
-        onComplete: () => {
+      const change = target - start;
+      let startTime: number | null = null;
+
+      const easeInOutCubic = (t: number) => {
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      };
+
+      const step = (timestamp: number) => {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easedProgress = easeInOutCubic(progress);
+
+        container.scrollLeft = start + change * easedProgress;
+
+        if (progress < 1) {
+          scrollAnimationRef.current = requestAnimationFrame(step);
+        } else {
           scrollAnimationRef.current = null;
         }
-      });
+      };
+
+      scrollAnimationRef.current = requestAnimationFrame(step);
     }
   };
 
@@ -46,7 +61,7 @@ export default function Home() {
       const maxScroll = container.scrollWidth - container.clientWidth;
       const target = Math.max(0, Math.min(end, maxScroll));
       
-      animateScroll(target, 1.6);
+      animateScroll(target, 2500); // Slow transition (2.5s)
       resetAutoplay();
     }
   };
@@ -64,16 +79,16 @@ export default function Home() {
         const maxScroll = container.scrollWidth - container.clientWidth;
         
         let target = container.scrollLeft + scrollAmount;
-        let duration = 1.6;
+        let duration = 2500; // Slow transition (2.5s)
 
         if (container.scrollLeft >= maxScroll - 10) {
           target = 0;
-          duration = 2.2; // Extra slow and elegant return transition
+          duration = 3500; // Extra slow returning transition
         }
 
         animateScroll(target, duration);
       }
-    }, 5000);
+    }, 6000); // Slide every 6 seconds
   };
 
   const stopAutoplay = () => {
@@ -227,6 +242,7 @@ export default function Home() {
           ref={sliderRef}
           onMouseEnter={() => { isHoveredRef.current = true; }}
           onMouseLeave={() => { isHoveredRef.current = false; }}
+          style={{ scrollBehavior: "auto" }}
           className="flex gap-6 overflow-x-auto no-scrollbar px-5 md:px-16 cursor-grab active:cursor-grabbing max-w-screen-xl mx-auto"
         >
           {instagramPosts.map((src, index) => (
