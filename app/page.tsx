@@ -3,10 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
-import { motion, animate } from "framer-motion";
+import { motion } from "framer-motion";
 import { useRef, useEffect } from "react";
+import { useAdmin } from "@/context/AdminContext";
 
 export default function Home() {
+  const { cmsData, feedbackItems } = useAdmin();
   const sliderRef = useRef<HTMLDivElement>(null);
   const scrollAnimationRef = useRef<any>(null);
   const autoplayTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -24,7 +26,6 @@ export default function Home() {
       const change = target - start;
       let startTime: number | null = null;
 
-      // easeOutCubic starts immediately at full speed and gracefully decelerates to a stop
       const easeOutCubic = (t: number) => {
         return 1 - Math.pow(1 - t, 3);
       };
@@ -53,7 +54,7 @@ export default function Home() {
       const container = sliderRef.current;
       const card = container.querySelector("div");
       const cardWidth = card ? card.clientWidth : 384;
-      const gap = 24; // gap-6 is 24px
+      const gap = 24;
       const scrollAmount = cardWidth + gap;
       
       const start = container.scrollLeft;
@@ -62,7 +63,7 @@ export default function Home() {
       const maxScroll = container.scrollWidth - container.clientWidth;
       const target = Math.max(0, Math.min(end, maxScroll));
       
-      animateScroll(target, 1800); // Highly responsive yet slow (1.8s)
+      animateScroll(target, 1800);
       resetAutoplay();
     }
   };
@@ -80,16 +81,16 @@ export default function Home() {
         const maxScroll = container.scrollWidth - container.clientWidth;
         
         let target = container.scrollLeft + scrollAmount;
-        let duration = 1800; // Responsive slow transition (1.8s)
+        let duration = 1800;
 
         if (container.scrollLeft >= maxScroll - 10) {
           target = 0;
-          duration = 2600; // Extra slow returning transition
+          duration = 2600;
         }
 
         animateScroll(target, duration);
       }
-    }, 6000); // Slide every 6 seconds
+    }, 6000);
   };
 
   const stopAutoplay = () => {
@@ -106,6 +107,7 @@ export default function Home() {
   useEffect(() => {
     startAutoplay();
     return () => stopAutoplay();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const categories = [
@@ -134,13 +136,22 @@ export default function Home() {
     "https://lh3.googleusercontent.com/aida-public/AB6AXuA88lduMSp6lRFR2RNqhrq6s7avvsDYDxkYxeuLiHQwx0ggl0p13M9awx7xextB-6JYx58YnlwFoZmLZKBDROgjBPo4O8BXi2U6IDEev0CflZXYGRvshsgIofi25hziWadEvV__VSKr75FB69jBMVSRRzKZErNi-PqcoeEdYxUEEnnbYdrGouQ1M_VTIWK403DyjKAZi_3RDqt_Cnb9fY6xlyCIbBe9JcJNhLxMbP-USVLRPKwxDZsrItGvPy3pJ8c8sDPvT960YCaP",
   ];
 
+  // Dynamic feedback rendering
+  const approvedFeedback = feedbackItems.filter((f) => f.approved);
+  const featuredFeedback = approvedFeedback[0] || {
+    text: "Aesthete represents more than apparel. It’s a deliberate study of form, function, and the silence of exceptional design.",
+    author: "Elena Vorski",
+    location: "Architectural Critic",
+  };
+  const secondaryFeedback = approvedFeedback.slice(1);
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* ─── Hero Section ─────────────────────────────────────────── */}
       <section className="relative h-[calc(100vh-4rem)] md:h-[90vh] min-h-[600px] w-full overflow-hidden flex items-center justify-center">
         <div className="absolute inset-0 bg-neutral-900">
           <Image
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBga5lcdNTZo5qWObfMmw_RL3ZwUJtQp_vG9UficR9a_WYSqzsoM3FkgcXjOx82IytbLGbcK72QerzF5Ince2lrPNcUUzGEMXs9SSriYR26pfPLsI9dzJjz3DOrvGmj28_gJ23g7xOcCrMqTbfU8SlatF2I1fmA134UU9on7OKs_SdNhYINdOOO3g5JMlqk5Pxpik_5FRN77rU_4Hr_KhJnyX3F96SSsLQtEwSh5zGTrTqAY7N9w3TwaBn0ZsZ-nNmGmd2Adj_J5THD"
+            src={cmsData.heroImage}
             alt="High-end architectural fashion"
             fill
             priority
@@ -155,18 +166,21 @@ export default function Home() {
           className="relative z-10 text-center px-6 max-w-4xl"
         >
           <h1 className="text-5xl md:text-8xl font-light text-on-primary tracking-tight uppercase leading-none mb-8">
-            Architectural <br />
-            <span className="italic font-serif">Forms</span>
+            {cmsData.heroTitle.split(" ").map((word, i) => (
+              <span key={i} className="block md:inline md:mr-4">
+                {i % 2 === 1 ? <span className="italic font-serif">{word}</span> : word}
+              </span>
+            ))}
           </h1>
           <p className="text-lg md:text-xl text-on-primary/80 max-w-xl mx-auto mb-10 font-light leading-relaxed">
-            A dialogue between human structure and sartorial precision. Collection 04 is now available.
+            {cmsData.heroSubtitle}
           </p>
           <div>
             <Link
               href="/collection"
               className="inline-block bg-on-primary text-primary px-10 py-4 text-label-caps tracking-widest font-semibold hover:bg-white/95 transition-colors border border-on-primary"
             >
-              Shop Collection
+              {cmsData.heroCtaText}
             </Link>
           </div>
         </motion.div>
@@ -273,27 +287,44 @@ export default function Home() {
           <div className="space-y-6">
             <span className="text-label-caps text-secondary uppercase tracking-widest">Our Community</span>
             <blockquote className="text-3xl md:text-4xl font-light italic leading-tight text-primary">
-              &ldquo;Aesthete represents more than apparel. It’s a deliberate study of form, function, and the silence of exceptional design.&rdquo;
+              &ldquo;{featuredFeedback.text}&rdquo;
             </blockquote>
             <div className="flex items-center gap-4">
               <div className="w-12 h-[1px] bg-primary"></div>
-              <span className="text-sm font-semibold tracking-wide text-primary">Elena Vorski, Architectural Critic</span>
+              <span className="text-sm font-semibold tracking-wide text-primary">
+                {featuredFeedback.author}, {featuredFeedback.location}
+              </span>
             </div>
           </div>
 
           <div className="space-y-8 border-l border-outline-variant pl-0 md:pl-12">
-            <div className="pb-6 border-b border-outline-variant/50">
-              <p className="text-base text-on-surface-variant mb-2">
-                &ldquo;The silhouette of the trench coat is unmatched. Pure architectural bliss.&rdquo;
-              </p>
-              <p className="text-label-caps text-secondary">Verified Purchase — London</p>
-            </div>
-            <div className="pb-6 border-b border-outline-variant/50">
-              <p className="text-base text-on-surface-variant mb-2">
-                &ldquo;Obsessed with the monochromatic palette. It makes getting ready every morning an exercise in effortless luxury.&rdquo;
-              </p>
-              <p className="text-label-caps text-secondary">Verified Purchase — Tokyo</p>
-            </div>
+            {secondaryFeedback.length > 0 ? (
+              secondaryFeedback.map((f) => (
+                <div key={f.id} className="pb-6 border-b border-outline-variant/50">
+                  <p className="text-base text-on-surface-variant mb-2">
+                    &ldquo;{f.text}&rdquo;
+                  </p>
+                  <p className="text-label-caps text-secondary">
+                    Verified Purchase — {f.location}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <>
+                <div className="pb-6 border-b border-outline-variant/50">
+                  <p className="text-base text-on-surface-variant mb-2">
+                    &ldquo;The silhouette of the trench coat is unmatched. Pure architectural bliss.&rdquo;
+                  </p>
+                  <p className="text-label-caps text-secondary">Verified Purchase — London</p>
+                </div>
+                <div className="pb-6 border-b border-outline-variant/50">
+                  <p className="text-base text-on-surface-variant mb-2">
+                    &ldquo;Obsessed with the monochromatic palette. It makes getting ready every morning an exercise in effortless luxury.&rdquo;
+                  </p>
+                  <p className="text-label-caps text-secondary">Verified Purchase — Tokyo</p>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </section>

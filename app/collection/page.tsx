@@ -6,67 +6,12 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
+import { useAdmin } from "@/context/AdminContext";
 
-const PRODUCTS = [
-  {
-    id: "structural-wool-coat",
-    name: "Structural Wool Coat",
-    price: 1250,
-    category: "outerwear",
-    color: "Charcoal Black",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuApcOfKWU7BfH3JP4UnANqEkd7L_FTB9CF2VB-zYpGWZK7plt79e0VIDigGCckjfleClBrsFrPZ827b7_uOuWuJPtfWPAsm-WSioaz6kmcshh3t0h6PmVKrTIhTMPKQfR5rFCUMFneUGWJh1JbpHsQ41IeY8aDWKEPE52XlnmVDG83dmkL-0rkSBnHdcUzyOulo7c23VzrSqgJTKIotSoO2m79J8pStdeH5n2jMshG4mdfXpfiaG672VIKKSu4xnXc0sqCLidMrT6UO",
-    slug: "structural-wool-coat",
-  },
-  {
-    id: "monolith-parka",
-    name: "Monolith Parka",
-    price: 1800,
-    category: "outerwear",
-    color: "Slate Gray",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuC8kinebXhyIy_wmYM2m9czkFBZngnP3f9wAfS7oiKWrZ6p7KMBOQ-A6BNK2zirG8BF8MWQQOo4FHMMHx2wJAYftT8P7gC8_kK8n1YIHBHj1qU_jfBYA7pA_0RK0iJ1HOTiGGEaTtJ7zqVPOQFbP30gRZRpHPDV4tDt6wBi3hV07ZQT7eQ36itke-6sTE4JMwHGaj4hZQYK1yXJZVdppCC5YrIcbLeiCK9yInhmJyyBstIU3tjAotsB94HkOIs5BWW2jj-dwKLOhNzJ",
-    slug: "monolith-parka",
-  },
-  {
-    id: "architectural-blazer",
-    name: "Architectural Blazer",
-    price: 950,
-    category: "outerwear",
-    color: "Pure White",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCg8ZtOU_uiqG2KZwNs6txbcik_jozZZ-B16Kh8qXgdDLRUcp5-VBhIrJ9DWGQ_ma7w3qFycT8vp-_HpHLaLskpQw4bUfGzAh6YP0vTMFE1xyl17Xdp2gIyOMy0z3RX22KFKnUiQ1MEUtb-45vR0FUFV0OJ0yMe9KeXHlb5rzY1vrHr4I36tfbG5sSp1Zok1Pk0gpinLIsLtSMJrp4BgMYGhnpCpIqmG7ZXeqfDACbzPmmp7JtfP-Gcfz04WL4aUZX8Mjmbr5fjFGLQ",
-    slug: "architectural-blazer",
-  },
-  {
-    id: "void-biker-jacket",
-    name: "Void Biker Jacket",
-    price: 2100,
-    category: "outerwear",
-    color: "Matte Onyx",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDczKpOmR2DnBjmU33JPt2zX9CzXzMeaHymVMFYqHCuVBBmzuM1IX_PzCLIVG1oeADnjhgJpAJxK9sebeUvg2aOrRVjhS2ve0p25P_7Cpk2awhObH3KP7dwvEEhZNiY3Zs_WJtiNAhEtUvPsoQV_Udk2YBRJEzyC9CaHqTp45WeGc04z9Oa58OVzbTz0NRc3d8Rqq1OtveLUOKseNtpzwWBbH7DD5Q_DQSORMe6gGf4MeIjLitQSrfNAYlYiGIfjwblRA-DQOcNnP6B",
-    slug: "void-biker-jacket",
-  },
-  {
-    id: "translucent-shell",
-    name: "Translucent Shell",
-    price: 780,
-    category: "outerwear",
-    color: "Frost",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCePAGW5LfgIWxsQhog7lJXCYoR3ltubazkI1JIyDKEOqfDBH3BC-tizBiz0yq845DKDGVOLu3Oc76rZ8TwXxrI1s8kXVI2530ssZxAkvnSere06c6VJnELpVwwMvb0zpEJbWRWgVmzTf24abqg7CzyX9mpKftf4sVC1pYfN_lrjT0xZFPGHhL1RKscoWXuu0WfYi_RteT8er8e2G3KW8hSibS2IBPYGd4noghfhE5fkUw8GNaOB-dHdV__g-E0X_FY-Qoyc8KnycTU",
-    slug: "translucent-shell",
-  },
-  {
-    id: "volume-overcoat",
-    name: "Volume Overcoat",
-    price: 1450,
-    category: "outerwear",
-    color: "Deep Ash",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDiNVIRX7blr872PFvnvfOVUEuQlE5uHKbo6AJza7qIBfWZMMdoE4qrBuxsri4WjzujH-3zjhlvMW2_OsS_Q_zVQgDjx6JZDFzP0Ciu-yP82kE7Q5JSrAfW2s7FtmxoA3nbG6ZRSSyIYF-SQ2NqbLVBhqJS4xyzJKK_0wUQIH56tymIgwbUoW5TCIyg8d0M19LaBrQosDY1wEuATb7eYW-VSUwEmWsclWyUPx3EGKMlSTw3LIidxbR68TdsQK7jIfNUEOA6nwfKlo5b",
-    slug: "volume-overcoat",
-  },
-];
-
-const CATEGORIES = ["Outerwear", "Essentials", "Accessories", "Footwear", "Archive"];
+const CATEGORIES = ["Outerwear", "Essentials", "Accessories", "Footwear", "Furniture", "Architecture", "Archive"];
 
 function CollectionContent() {
+  const { products } = useAdmin();
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get("category") || "outerwear";
 
@@ -76,18 +21,28 @@ function CollectionContent() {
   const [sortOpen, setSortOpen] = useState(false);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
 
+  // Filter by status (active vs archived)
+  const statusFiltered = products.filter(p => 
+    category === "archive" ? p.status === "Archived" : p.status === "Active"
+  );
+
   // Sorting logic
-  const sortedProducts = [...PRODUCTS].sort((a, b) => {
+  const sortedProducts = [...statusFiltered].sort((a, b) => {
     if (sortBy === "price-asc") return a.price - b.price;
     if (sortBy === "price-desc") return b.price - a.price;
     return 0;
   });
 
   // Category filter logic
-  const filteredProducts =
-    category === "all"
+  const categoryFiltered =
+    category === "all" || category === "archive"
       ? sortedProducts
-      : sortedProducts.filter((p) => p.category === category.toLowerCase());
+      : sortedProducts.filter((p) => p.category.toLowerCase() === category.toLowerCase());
+
+  // Size filter logic
+  const filteredProducts = selectedSizes.length > 0
+    ? categoryFiltered.filter(p => p.sizes && p.sizes.some(sz => selectedSizes.includes(sz)))
+    : categoryFiltered;
 
   const toggleSize = (sz: string) => {
     setSelectedSizes((prev) =>
@@ -253,7 +208,7 @@ function CollectionContent() {
                         {product.name}
                       </h3>
                       <p className="text-[10px] uppercase tracking-widest text-secondary mt-1">
-                        {product.color}
+                        {product.colors?.[0]?.name || "Default"}
                       </p>
                     </div>
                     <span className="text-sm font-bold text-primary">

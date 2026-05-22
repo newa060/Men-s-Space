@@ -17,9 +17,14 @@ export default function SignInUp() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate successful login/signup
-    router.push("/profile");
+    // Redirect to admin dashboard if email is admin@aesthete.com
+    if (email.toLowerCase() === "admin@aesthete.com") {
+      router.push("/admin/dashboard");
+    } else {
+      router.push("/profile");
+    }
   };
+
 
   return (
     <div className="min-h-[85vh] grid grid-cols-1 md:grid-cols-12 max-w-screen-xl mx-auto w-full items-stretch">
@@ -70,7 +75,7 @@ export default function SignInUp() {
             </h1>
             <p className="text-xs text-secondary mt-1">
               {isSignIn
-                ? "Enter your details to access your account dashboard."
+                ? "Enter your details to access your account dashboard. Tip: Use admin@aesthete.com / password to enter Admin Console."
                 : "Create an account for faster checkouts and order history tracking."}
             </p>
           </div>

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,11 +6,127 @@
 
 :root {
   --font-hanken-grotesk: 'Hanken Grotesk', sans-serif;
+  --font-eb-garamond: 'EB Garamond', serif;
+
+  /* Storefront Theme (Light Mode Default) */
+  --primary: #000000;
+  --on-primary: #ffffff;
+  --primary-container: #1b1b1b;
+  --on-primary-container: #848484;
+  --primary-fixed: #e2e2e2;
+  --primary-fixed-dim: #c6c6c6;
+  --on-primary-fixed: #1b1b1b;
+  --on-primary-fixed-variant: #474747;
+  --inverse-primary: #c6c6c6;
+
+  --secondary: #5e5e5e;
+  --on-secondary: #ffffff;
+  --secondary-container: #e3e2e2;
+  --on-secondary-container: #646464;
+  --secondary-fixed: #e3e2e2;
+  --secondary-fixed-dim: #c7c6c6;
+  --on-secondary-fixed: #1b1c1c;
+  --on-secondary-fixed-variant: #464747;
+
+  --tertiary: #000000;
+  --on-tertiary: #ffffff;
+  --tertiary-container: #1a1c1c;
+  --on-tertiary-container: #838484;
+  --tertiary-fixed: #e2e2e2;
+  --tertiary-fixed-dim: #c6c6c7;
+  --on-tertiary-fixed: #1a1c1c;
+  --on-tertiary-fixed-variant: #454747;
+
+  --background: #f9f9f9;
+  --on-background: #1a1c1c;
+
+  --surface: #f9f9f9;
+  --on-surface: #1a1c1c;
+  --surface-variant: #e2e2e2;
+  --on-surface-variant: #4c4546;
+  --surface-dim: #dadada;
+  --surface-bright: #f9f9f9;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f3f3f4;
+  --surface-container: #eeeeee;
+  --surface-container-high: #e8e8e8;
+  --surface-container-highest: #e2e2e2;
+  --surface-tint: #5e5e5e;
+
+  --inverse-surface: #2f3131;
+  --inverse-on-surface: #f0f1f1;
+
+  --outline: #7e7576;
+  --outline-variant: #cfc4c5;
+
+  --error: #ba1a1a;
+  --on-error: #ffffff;
+  --error-container: #ffdad6;
+  --on-error-container: #93000a;
+}
+
+.dark {
+  /* Admin Console Theme (Dark Mode) */
+  --primary: #f2c36b;
+  --on-primary: #412d00;
+  --primary-container: #d4a853;
+  --on-primary-container: #573d00;
+  --primary-fixed: #ffdea6;
+  --primary-fixed-dim: #eec068;
+  --on-primary-fixed: #271900;
+  --on-primary-fixed-variant: #5d4200;
+  --inverse-primary: #7b5804;
+
+  --secondary: #c8c6c5;
+  --on-secondary: #303030;
+  --secondary-container: #474746;
+  --on-secondary-container: #b7b5b4;
+  --secondary-fixed: #e5e2e1;
+  --secondary-fixed-dim: #c8c6c5;
+  --on-secondary-fixed: #1b1b1c;
+  --on-secondary-fixed-variant: #474746;
+
+  --tertiary: #afcbff;
+  --on-tertiary: #023061;
+  --tertiary-container: #8fb0e9;
+  --on-tertiary-container: #1d4274;
+  --tertiary-fixed: #d6e3ff;
+  --tertiary-fixed-dim: #a8c8ff;
+  --on-tertiary-fixed: #001b3d;
+  --on-tertiary-fixed-variant: #234779;
+
+  --background: #16130d;
+  --on-background: #eae1d7;
+
+  --surface: #16130d;
+  --on-surface: #eae1d7;
+  --surface-variant: #39342d;
+  --on-surface-variant: #d2c5b2;
+  --surface-dim: #16130d;
+  --surface-bright: #3d3831;
+  --surface-container-lowest: #110e08;
+  --surface-container-low: #1f1b15;
+  --surface-container: #231f19;
+  --surface-container-high: #2e2923;
+  --surface-container-highest: #39342d;
+  --surface-tint: #eec068;
+
+  --inverse-surface: #eae1d7;
+  --inverse-on-surface: #343029;
+
+  --outline: #9b8f7e;
+  --outline-variant: #4e4637;
+
+  --error: #ffb4ab;
+  --on-error: #690005;
+  --error-container: #93000a;
+  --on-error-container: #ffdad6;
 }
 
 @layer base {
   * {
     box-sizing: border-box;
+    border-color: var(--outline-variant);
   }
 
   html {
@@ -19,14 +135,15 @@
 
   body {
     font-family: var(--font-hanken-grotesk), sans-serif;
-    background-color: #f9f9f9;
-    color: #1a1c1c;
+    background-color: var(--background);
+    color: var(--on-background);
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
-  /* Remove default browser border-radius on inputs, buttons */
+  /* Custom inputs/buttons behavior */
   input,
   button,
   select,
@@ -37,7 +154,6 @@
 }
 
 @layer utilities {
-  /* Hide scrollbar but keep functionality */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
@@ -46,7 +162,6 @@
     scrollbar-width: none;
   }
 
-  /* Label caps utility */
   .label-caps {
     font-size: 12px;
     font-weight: 600;
@@ -56,11 +171,27 @@
   }
 }
 
-/* Custom animations */
+/* Scrollbars for dark theme admin lists */
+.dark ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: var(--surface-container-lowest);
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--outline-variant);
+  border-radius: 3px;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--outline);
+}
+
+/* Keyframes & helper animations */
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(15px);
   }
   to {
     opacity: 1;
@@ -68,15 +199,14 @@
   }
 }
 
-@keyframes slideInFromRight {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.animate-fade-in-up {
-  animation: fadeInUp 0.7s ease-out forwards;
+/* Extra support for material symbol sizing and alignment */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 1;
 }

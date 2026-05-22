@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
+import { AdminProvider } from "@/context/AdminContext";
+import LayoutWrapper from "@/components/layout/LayoutWrapper";
 
 export const metadata: Metadata = {
   title: "AESTHETE | Monochrome Fashion",
@@ -16,14 +16,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+      </head>
       <body className="antialiased min-h-screen flex flex-col bg-background text-on-background selection:bg-primary selection:text-on-primary">
-        <CartProvider>
-          <Navbar />
-          <main className="flex-grow pt-16 md:pt-20">
-            {children}
-          </main>
-          <Footer />
-        </CartProvider>
+        <AdminProvider>
+          <CartProvider>
+            <LayoutWrapper>
+              {children}
+            </LayoutWrapper>
+          </CartProvider>
+        </AdminProvider>
       </body>
     </html>
   );

@@ -7,132 +7,28 @@ import Image from "next/image";
 import { useCart } from "@/context/CartContext";
 import { Shield, Truck, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
-
-const PRODUCT_DATABASE: Record<
-  string,
-  {
-    id: string;
-    name: string;
-    price: number;
-    category: string;
-    description: string;
-    materials: string;
-    waterproof: string;
-    breathability: string;
-    hardware: string;
-    seams: string;
-    images: string[];
-    colors: { name: string; hex: string }[];
-  }
-> = {
-  "monolith-parka": {
-    id: "monolith-parka",
-    name: "Monolith Parka",
-    price: 1250,
-    category: "Outerwear / Series 01",
-    description: "The Monolith Parka is a study in brutalist silhouette and environmental resilience. Constructed with laser-cut precision, its structural panels create a sharp, protective volume that maintains its geometric integrity regardless of movement.",
-    materials: "3L Graphene Shell",
-    waterproof: "20,000mm",
-    breathability: "15,000g/m²",
-    hardware: "Matte Cobalt YKK",
-    seams: "Ultrasonic Welded",
-    images: [
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuB_Ct1FuIuegBipTc_zn4OdzDzFfm3pU_wd41IEOmbpdJSF-QO_0GDIEF1gJq4d0j8hZseSVpVd5ACa_0eRHDaoYdVHJu7N6mXRz8QIri6hl01rqi7VJPf25KTcmIrlcTdP3jHYRqKnhX1AY_XIRUFNkFPCi_fNxJe-KWF9MgqkLpp0Y0079rsGJgXFerVzCkfDAWAv7CUxwXQv1Z_RcFcwlDWce4jRalgFOou3yjfrXosXfCx2ySplccUTomuVni7URqgkaFrytdXs",
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDsRayMEAab_Rvn-ZKJoYxJ4KuZfFdaKvCP0BRRWI3YSGJp5QpzF6BwaQbojgaINUicOizRH8HwsuQ5xdYMxF1n7Kk4WccnG4u7QoI7azo1lPdEV6FOhi6n3qbOCF9n6N26EFSRbl4C_6oazhBr6gxnNRvKod6JULuI4yHLtqMmncDhJ5yb957vZix3owp5wDEx1xW6Y3rmdh7Qq9YTgcIJlAUicfJBSUuD_Ng5l9vSMzHkDAU77I_CuU_XBUGn6txSNeherfVfMdIG",
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCkL8zb_7llZX0kn_yyCNctXTsACdI1urlFOj_paqU4W7vzTHyFiIe8Lf4E3eEFJp1ZzgX2jE-sBY_yjx1alf9324oxXZK7HTnWVNB2tNBd1wgqOzKrl14jVqdtebhvjiUeeZHNRnFdhi-xC9hlvMnQrLR6BEnQ3VymANAbYBeX2Uu8bXF_qq3e0twttRcTGy-m2pKxXis3Y4bsvmYfgkWSUxWo6O9DlcDpWJ1Jyf93qkNt2WCX49pLLxJS34YKgCHi2-RXu9X247MN",
-    ],
-    colors: [
-      { name: "Charcoal", hex: "#1b1b1b" },
-      { name: "Slate", hex: "#4c4c4c" },
-    ],
-  },
-  "structural-wool-coat": {
-    id: "structural-wool-coat",
-    name: "Structural Wool Coat",
-    price: 1090,
-    category: "Outerwear / Series 02",
-    description: "Featuring a custom structured wool weave, this coat defines class and performance. Its sharp collar line and architectural cut are designed to hang perfectly in any pose.",
-    materials: "100% Virgin Melton Wool",
-    waterproof: "Water-resistant",
-    breathability: "Natural Breathability",
-    hardware: "Horn Buttons",
-    seams: "Felled Tailoring Seams",
-    images: [
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBNTiPV-94sOcCV_ZNissk31ncdN23HhehqmCWT8-FQ9ITtuZ3kdB0pD9N0PXXGVaEX_EIzmeyjUC5exi5h2aw3rE-HfiHFKIzp71GbIWjsnAVXBixywaMgWLfxZiQim5ROHDjmCy-Qs5DOHUrz8AmFXqE-x4kqrP6Nr62IWNxEx8tf1luJjCKnvwft0BTid4PD2r7PGqjkHcbpbq03O7lMrnTthhPpi0VVHRpY6EF1yd_jZ-pZg5fnu6SKMgNKHUt47F6n_D0x3fqZ",
-    ],
-    colors: [
-      { name: "Black", hex: "#000000" },
-      { name: "Ash", hex: "#8e8e8e" },
-    ],
-  },
-  "architectural-overcoat": {
-    id: "architectural-overcoat",
-    name: "ARCHITECTURAL OVERCOAT",
-    price: 1290,
-    category: "Outerwear / Series 01",
-    description: "An oversized double-breasted overcoat engineered from a dense wool composite. Architectural structuring defines the shoulders and back panel for a silent, powerful luxury drape.",
-    materials: "Brutalist Felted Wool Blend",
-    waterproof: "Semi-waterproof treatment",
-    breathability: "Highly Breathable",
-    hardware: "Custom Gunmetal Snaps",
-    seams: "Taped interior seams",
-    images: [
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCCcfKCQRNHLPYl7dMXPZtKcusxelsZrj-mrWmjZR1DmAe-g0aoYTRenVDu8DKtzqftVhoVWriovwbzBDXFCTsvM0f8HLvtB3O03lN5F1mpSSAfxLUtwnCzAoIiO3KLeXCr3zpH7NFNJG0NSvFlTAZgUXNes1dacFH-tfEGs_JDESeqpcztZN5XuirpsynZ6K_vqk0hYd0mpnHzqSYbD-L2wsis3Uu8-ruFC6QWt9CXuuGnBaHAeux4V1YwUtNXn5Zqo5KKMkpm_e8k",
-    ],
-    colors: [
-      { name: "Charcoal", hex: "#2b2d2f" },
-      { name: "Black", hex: "#000000" },
-    ],
-  },
-  "structural-poplin-shirt": {
-    id: "structural-poplin-shirt",
-    name: "STRUCTURAL POPLIN SHIRT",
-    price: 390,
-    category: "Shirts / Essentials",
-    description: "A high-density cotton poplin shirt with architectural details, featuring a stiff hidden-button placket and crisp geometrical angles.",
-    materials: "100% Egyptian Giza Cotton",
-    waterproof: "None",
-    breathability: "Maximum",
-    hardware: "Mother of Pearl Buttons",
-    seams: "High-density single needle stitching",
-    images: [
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBGSmMOfcvIAwNxaNcO-y6uyVRZLptLlQl5PXdN7KEYnLCfgclkZ6O-Yp4zvkWx0lbdneArQFFqbAEkm3Pn4dE8pJUAgLNF-HXjP1WlMApyvv9dEKIf7CfMfLEYevTdnnHYxCk3paEx9b3el07bSJaTzAuvwHUV_Ohg3eEqPqxK0yFsTH3wBeudmIsHhRqsgeJLZTkHJDgVOfVcNk1myT3IH3TSb-jgAKmdURbiypoUwPoMgvK2shkHJkEK2Pi8-wDE6cDi-Jcnz6dz",
-    ],
-    colors: [
-      { name: "White", hex: "#ffffff" },
-      { name: "Black", hex: "#0a0a0a" },
-    ],
-  },
-  "kinetics-shell": {
-    id: "kinetics-shell",
-    name: "Kinetics Shell",
-    price: 450,
-    category: "Outerwear / Tech",
-    description: "A technical lightweight windbreaker built with performance layers and laser ventilation ports, mapping to the form of kinetic movement.",
-    materials: "Tech Nylon Composite",
-    waterproof: "15,000mm",
-    breathability: "20,000g/m²",
-    hardware: "Waterproof YKK Aquaguard",
-    seams: "Fully taped seams",
-    images: [
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCjlDZs_2O1NSuBgZHH5C_cQ8qd_5g_g528jbVybnpwq8Z7b9bo0hoWoxC10n_fDn29SrzpuKEo951YqsQ65aNU1fjuwVwSWJLUTDuzkQHBs630cGJAhK4oyCwElemH7g8iuYlYr9wrokGjwNgPQYnzmWafxEV0_0qRsOuRxWFXfx-9suHvEJfXoVMtH1tUhjBhkptdxl72iTacAux2HHt0h7Fvd3Gc4AN7wMPXG8FwuootqK0Use4gI8d5sLKwskV8Xveetgg8mALW",
-    ],
-    colors: [
-      { name: "Black", hex: "#111111" },
-      { name: "Slate", hex: "#444648" },
-    ],
-  },
-};
+import { useAdmin } from "@/context/AdminContext";
 
 export default function ProductPage() {
+  const { products } = useAdmin();
   const { slug } = useParams() as { slug: string };
   const router = useRouter();
   const { addItem, openCart } = useCart();
 
-  const product = PRODUCT_DATABASE[slug] || PRODUCT_DATABASE["monolith-parka"];
+  const product = products.find(p => p.slug === slug || p.id === slug) || products.find(p => p.category === "Outerwear") || products[0];
 
   const [selectedSize, setSelectedSize] = useState("M");
-  const [selectedColor, setSelectedColor] = useState(product.colors[0]?.name || "Black");
+  const [selectedColor, setSelectedColor] = useState(
+    product?.colors?.[0]?.name || "Default"
+  );
+
+  if (!product) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-secondary text-xs tracking-widest uppercase">
+        Product not found
+      </div>
+    );
+  }
 
   const handleAddToCart = () => {
     addItem({
@@ -141,8 +37,8 @@ export default function ProductPage() {
       price: product.price,
       size: selectedSize,
       color: selectedColor,
-      image: product.images[0],
-      slug: product.id,
+      image: product.images?.[0] || product.image,
+      slug: product.slug,
     });
     openCart();
   };
@@ -182,23 +78,23 @@ export default function ProductPage() {
             <ul className="text-xs text-secondary space-y-2.5">
               <li className="flex justify-between">
                 <span>Material</span>
-                <span className="text-primary font-medium">{product.materials}</span>
+                <span className="text-primary font-medium">{product.materials || "Curated Materials"}</span>
               </li>
               <li className="flex justify-between">
                 <span>Waterproof</span>
-                <span className="text-primary font-medium">{product.waterproof}</span>
+                <span className="text-primary font-medium">{product.waterproof || "N/A"}</span>
               </li>
               <li className="flex justify-between">
                 <span>Breathability</span>
-                <span className="text-primary font-medium">{product.breathability}</span>
+                <span className="text-primary font-medium">{product.breathability || "N/A"}</span>
               </li>
               <li className="flex justify-between">
                 <span>Hardware</span>
-                <span className="text-primary font-medium">{product.hardware}</span>
+                <span className="text-primary font-medium">{product.hardware || "Premium Details"}</span>
               </li>
               <li className="flex justify-between">
                 <span>Seams</span>
-                <span className="text-primary font-medium">{product.seams}</span>
+                <span className="text-primary font-medium">{product.seams || "Reinforced Seams"}</span>
               </li>
             </ul>
           </div>
@@ -206,7 +102,7 @@ export default function ProductPage() {
 
         {/* ─── Column 2: Gallery (Scroll Center) ─────────────────── */}
         <section className="md:col-span-6 space-y-8 order-1 md:order-2">
-          {product.images.map((src, index) => (
+          {(product.images || [product.image]).map((src, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, y: 20 }}
@@ -263,7 +159,7 @@ export default function ProductPage() {
           <div className="space-y-3">
             <h3 className="text-label-caps text-primary tracking-widest">Select Color</h3>
             <div className="flex gap-4">
-              {product.colors.map((col) => (
+              {(product.colors || [{ name: "Default", hex: "#000000" }]).map((col) => (
                 <button
                   key={col.name}
                   onClick={() => setSelectedColor(col.name)}
