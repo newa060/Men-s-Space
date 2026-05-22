@@ -13,7 +13,6 @@ const navItems: NavItem[] = [
   { href: "/admin/dashboard", label: "Dashboard", icon: "dashboard" },
   { href: "/admin/collections", label: "Collections", icon: "domain" },
   { href: "/admin/orders", label: "Orders", icon: "shopping_cart" },
-  { href: "/admin/architecture", label: "Architecture", icon: "architecture" },
   { href: "/admin/content", label: "Studio Assets", icon: "auto_stories" },
 ];
 
@@ -96,10 +95,6 @@ export default function SideNavBar() {
 
       {/* Footer actions */}
       <div className="px-6 mt-auto space-y-1">
-        <button className="w-full mb-4 py-3 px-4 bg-primary text-on-primary text-[11px] font-bold tracking-widest uppercase rounded-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
-          <span className="material-symbols-outlined text-[16px]">add</span>
-          New Project
-        </button>
         <a
           href="#"
           className="flex items-center gap-3 py-2 px-2 text-on-surface-variant hover:text-on-surface text-[12px] tracking-wider transition-colors"

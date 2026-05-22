@@ -1,37 +1,11 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, ArrowUpRight } from "lucide-react";
 import { motion } from "framer-motion";
-
-const NEW_ARRIVALS = [
-  {
-    id: "kinetics-shell",
-    name: "Kinetics Shell",
-    price: 450,
-    series: "Series 02 / Tech",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCjlDZs_2O1NSuBgZHH5C_cQ8qd_5g_g528jbVybnpwq8Z7b9bo0hoWoxC10n_fDn29SrzpuKEo951YqsQ65aNU1fjuwVwSWJLUTDuzkQHBs630cGJAhK4oyCwElemH7g8iuYlYr9wrokGjwNgPQYnzmWafxEV0_0qRsOuRxWFXfx-9suHvEJfXoVMtH1tUhjBhkptdxl72iTacAux2HHt0h7Fvd3Gc4AN7wMPXG8FwuootqK0Use4gI8d5sLKwskV8Xveetgg8mALW",
-    slug: "kinetics-shell",
-  },
-  {
-    id: "modular-tote",
-    name: "Modular Tote",
-    price: 280,
-    series: "Series 02 / Acc",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAqb49rc1xOonG_T8wEIQznPcyiq2GDIJDHB8K2MyNQKsuzmZUhUu2YJ2CBbdjKy-wk-PZTTIFoB2iIl7Sqj3dQT-DwG-HaBCHyvk16J_DW0Ehabd2dsgkEd_Epf473bIkAAkfquGcdiixzHETJu0sESqpJjSNYOPU8Y6IwtXdHQyO8YVds2Ny5ocV9vtcT8sIJ15M39vPcPrRzhXPoo6oe2oYpP1KoJO4lyVEj1F6rSJ-6kVWe2HzYZEt0kroPI50JvkPNHL3hIPSZ",
-    slug: "modular-tote",
-  },
-  {
-    id: "tectonic-vest",
-    name: "Tectonic Vest",
-    price: 320,
-    series: "Series 02 / Layer",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuC-Dki32HOcAtGS59CpGySwRHehmArKtJx8GfNseF_Q-IG3mvgcwdC1KCr0zgVXCJPbAkpqSmx1e51-BuGc6LeknvBVid9oRRbVXBWTDODmup6Nyt_E4mQL29WFzw3Y6IiiylZQ46RvyLe4Uzh8YYTfA6u6SvSgrslt8aP9B3tkPyFHtzKc363nXlQArpHAy4z3F14RCfPL_SS-HduWAPYZZC28g4E0J4sHGBmnIhq39Lo9cM-OCZ03GgEMN1wJg-sDKwVRNLnGlRda",
-    slug: "tectonic-vest",
-  },
-];
+import { useAdmin } from "@/context/AdminContext";
 
 const ARCHIVE_SLIDES = [
   "https://lh3.googleusercontent.com/aida-public/AB6AXuDKY5VkcHZAdan2pUTOU_GC3FbEBM3vMRcOXjhprRMHnGiJmQKkBCkuT7KuAdKstLUaARMHt0O2wkLVwBRdn-tnbqlcH92jgL3bcFf2HGtG4kRWDgm20QkfYbDMMfJOko7Jv6bdvgd9oh4-pyVAvRUTnBhk0b4FGd77AQ_u_1IwcFtAIFU-AQWQ4EV0o48WJ-UPdKqgkIq84Ue1m2NbNEp8WpJHCKFkSP91-JsQvE3xFjxTSUK8AfHSB-YMGxq69wR4mNNc1qX-6sn-",
@@ -41,7 +15,19 @@ const ARCHIVE_SLIDES = [
 ];
 
 export default function NewArrivals() {
+  const { products } = useAdmin();
   const archiveRef = useRef<HTMLDivElement>(null);
+  const [selectedCategory, setSelectedCategory] = useState("All");
+
+  const dynamicNewArrivals = products.filter(
+    (p) => p.isNewArrival && p.status === "Active"
+  );
+
+  const categories = ["All", ...Array.from(new Set(dynamicNewArrivals.map((p) => p.category)))];
+
+  const filteredNewArrivals = selectedCategory === "All"
+    ? dynamicNewArrivals
+    : dynamicNewArrivals.filter((p) => p.category === selectedCategory);
 
   const scrollArchive = (direction: "left" | "right") => {
     if (archiveRef.current) {
@@ -94,57 +80,70 @@ export default function NewArrivals() {
               CATEGORIES
             </h3>
             <ul className="space-y-4 text-sm text-secondary">
-              <li className="hover:text-primary cursor-pointer transition-colors font-medium text-primary underline underline-offset-4">
-                All Series
-              </li>
-              <li className="hover:text-primary cursor-pointer transition-colors">
-                Outerwear (12)
-              </li>
-              <li className="hover:text-primary cursor-pointer transition-colors">
-                Accessories (08)
-              </li>
-              <li className="hover:text-primary cursor-pointer transition-colors">
-                Tectonic Layering (05)
-              </li>
+              {categories.map((cat) => {
+                const count = cat === "All"
+                  ? dynamicNewArrivals.length
+                  : dynamicNewArrivals.filter((p) => p.category === cat).length;
+                const isSelected = selectedCategory === cat;
+                return (
+                  <li
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`hover:text-primary cursor-pointer transition-colors ${
+                      isSelected
+                        ? "font-medium text-primary underline underline-offset-4"
+                        : ""
+                    }`}
+                  >
+                    {cat} ({count.toString().padStart(2, "0")})
+                  </li>
+                );
+              })}
             </ul>
           </aside>
 
           {/* Grid */}
           <div className="md:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-16">
-            {NEW_ARRIVALS.map((product, idx) => (
-              <motion.div
-                key={product.id}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ duration: 0.6, delay: idx * 0.1 }}
-                className="group cursor-pointer"
-              >
-                <Link href={`/product/${product.slug}`}>
-                  <div className="aspect-[4/5] overflow-hidden bg-surface-container mb-4 relative">
-                    <Image
-                      src={product.image}
-                      alt={product.name}
-                      fill
-                      className="object-cover group-hover:scale-[1.04] transition-all duration-700"
-                      sizes="(max-width: 768px) 100vw, 25vw"
-                    />
-                    <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  </div>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="text-sm font-medium tracking-wide uppercase text-primary mb-1">
-                        {product.name}
-                      </h4>
-                      <p className="text-xs text-secondary tracking-wider uppercase">
-                        {product.series}
-                      </p>
+            {filteredNewArrivals.length === 0 ? (
+              <div className="col-span-3 text-center py-20 text-secondary text-xs uppercase tracking-widest">
+                No new arrivals available in this category.
+              </div>
+            ) : (
+              filteredNewArrivals.map((product, idx) => (
+                <motion.div
+                  key={product.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-50px" }}
+                  transition={{ duration: 0.6, delay: idx * 0.1 }}
+                  className="group cursor-pointer"
+                >
+                  <Link href={`/product/${product.slug}`}>
+                    <div className="aspect-[4/5] overflow-hidden bg-surface-container mb-4 relative">
+                      <Image
+                        src={product.image}
+                        alt={product.name}
+                        fill
+                        className="object-cover group-hover:scale-[1.04] transition-all duration-700"
+                        sizes="(max-width: 768px) 100vw, 25vw"
+                      />
+                      <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     </div>
-                    <span className="text-label-caps text-primary">${product.price.toFixed(2)}</span>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="text-sm font-medium tracking-wide uppercase text-primary mb-1">
+                          {product.name}
+                        </h4>
+                        <p className="text-xs text-secondary tracking-wider uppercase">
+                          {product.series || "Series 02 / Item"}
+                        </p>
+                      </div>
+                      <span className="text-label-caps text-primary">${product.price.toFixed(2)}</span>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))
+            )}
           </div>
         </div>
       </section>

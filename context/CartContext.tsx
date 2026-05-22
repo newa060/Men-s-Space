@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -26,9 +26,20 @@ export interface Address {
   isDefault: boolean;
 }
 
+export interface UserSession {
+  id: string;
+  email: string;
+  fullName: string;
+  phone: string;
+  avatarUrl: string;
+  role: string;
+}
+
 interface CartContextValue {
   items: CartItem[];
   addresses: Address[];
+  user: UserSession | null;
+  isUserLoading: boolean;
   isCartOpen: boolean;
   isSearchOpen: boolean;
   addItem: (item: Omit<CartItem, "quantity">) => void;
@@ -39,12 +50,14 @@ interface CartContextValue {
   closeCart: () => void;
   openSearch: () => void;
   closeSearch: () => void;
-  addAddress: (addr: Omit<Address, "id">) => void;
-  updateAddress: (id: string, addr: Omit<Address, "id">) => void;
-  removeAddress: (id: string) => void;
-  setDefaultAddress: (id: string) => void;
+  addAddress: (addr: Omit<Address, "id">) => Promise<void>;
+  updateAddress: (id: string, addr: Omit<Address, "id">) => Promise<void>;
+  removeAddress: (id: string) => Promise<void>;
+  setDefaultAddress: (id: string) => Promise<void>;
+  placeOrder: (customerName: string, customerEmail: string) => Promise<{ success: boolean; data?: any; error?: string }>;
   itemCount: number;
   subtotal: number;
+  refreshSession: () => Promise<void>;
 }
 
 // ─── Context ─────────────────────────────────────────────────────────────────
@@ -79,7 +92,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     },
   ]);
 
-  const [addresses, setAddresses] = useState<Address[]>([
+  const mockAddresses: Address[] = [
     {
       id: "addr-1",
       name: "Julian Vane",
@@ -98,10 +111,44 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       postcode: "130-0013",
       isDefault: false,
     },
-  ]);
+  ];
+
+  const [addresses, setAddresses] = useState<Address[]>(mockAddresses);
+  const [user, setUser] = useState<UserSession | null>(null);
+  const [isUserLoading, setIsUserLoading] = useState(true);
 
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // ─── Auth Session & Sync Addresses ──────────────────────────────────────────
+
+  const refreshSession = useCallback(async () => {
+    try {
+      setIsUserLoading(true);
+      const res = await fetch("/api/auth/session");
+      const json = await res.json();
+      if (json.success && json.data?.user) {
+        setUser(json.data.user);
+        // Load addresses from API
+        const addrRes = await fetch("/api/customer/addresses");
+        const addrJson = await addrRes.json();
+        if (addrJson.success && addrJson.data) {
+          setAddresses(addrJson.data);
+        }
+      } else {
+        setUser(null);
+        setAddresses(mockAddresses);
+      }
+    } catch (e) {
+      console.error("Error fetching session/addresses:", e);
+    } finally {
+      setIsUserLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshSession();
+  }, [refreshSession]);
 
   // ─── Cart Actions ───────────────────────────────────────────────────────────
 
@@ -160,38 +207,162 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // ─── Address Actions ────────────────────────────────────────────────────────
 
-  const addAddress = useCallback((addr: Omit<Address, "id">) => {
-    const id = `addr-${Date.now()}`;
-    setAddresses((prev) => {
-      if (addr.isDefault) {
-        return [
-          ...prev.map((a) => ({ ...a, isDefault: false })),
-          { ...addr, id },
-        ];
+  const addAddress = useCallback(async (addr: Omit<Address, "id">) => {
+    if (user) {
+      try {
+        const res = await fetch("/api/customer/addresses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(addr),
+        });
+        const json = await res.json();
+        if (json.success && json.data) {
+          const addrRes = await fetch("/api/customer/addresses");
+          const addrJson = await addrRes.json();
+          if (addrJson.success) setAddresses(addrJson.data);
+        } else {
+          alert(json.error || "Failed to add address");
+        }
+      } catch (e: any) {
+        alert(e.message);
       }
-      return [...prev, { ...addr, id }];
-    });
-  }, []);
+    } else {
+      const id = `addr-${Date.now()}`;
+      setAddresses((prev) => {
+        if (addr.isDefault) {
+          return [
+            ...prev.map((a) => ({ ...a, isDefault: false })),
+            { ...addr, id },
+          ];
+        }
+        return [...prev, { ...addr, id }];
+      });
+    }
+  }, [user]);
 
-  const removeAddress = useCallback((id: string) => {
-    setAddresses((prev) => prev.filter((a) => a.id !== id));
-  }, []);
-
-  const updateAddress = useCallback((id: string, updated: Omit<Address, "id">) => {
-    setAddresses((prev) => {
-      let next = prev.map((a) => (a.id === id ? { ...updated, id } : a));
-      if (updated.isDefault) {
-        next = next.map((a) => ({ ...a, isDefault: a.id === id }));
+  const updateAddress = useCallback(async (id: string, addr: Omit<Address, "id">) => {
+    if (user && !id.startsWith("addr-")) {
+      try {
+        const res = await fetch(`/api/customer/addresses/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(addr),
+        });
+        const json = await res.json();
+        if (json.success) {
+          const addrRes = await fetch("/api/customer/addresses");
+          const addrJson = await addrRes.json();
+          if (addrJson.success) setAddresses(addrJson.data);
+        } else {
+          alert(json.error || "Failed to update address");
+        }
+      } catch (e: any) {
+        alert(e.message);
       }
-      return next;
-    });
-  }, []);
+    } else {
+      setAddresses((prev) => {
+        let next = prev.map((a) => (a.id === id ? { ...addr, id } : a));
+        if (addr.isDefault) {
+          next = next.map((a) => ({ ...a, isDefault: a.id === id }));
+        }
+        return next;
+      });
+    }
+  }, [user]);
 
-  const setDefaultAddress = useCallback((id: string) => {
-    setAddresses((prev) =>
-      prev.map((a) => ({ ...a, isDefault: a.id === id }))
-    );
-  }, []);
+  const removeAddress = useCallback(async (id: string) => {
+    if (user && !id.startsWith("addr-")) {
+      try {
+        const res = await fetch(`/api/customer/addresses/${id}`, {
+          method: "DELETE",
+        });
+        const json = await res.json();
+        if (json.success) {
+          setAddresses((prev) => prev.filter((a) => a.id !== id));
+        } else {
+          alert(json.error || "Failed to delete address");
+        }
+      } catch (e: any) {
+        alert(e.message);
+      }
+    } else {
+      setAddresses((prev) => prev.filter((a) => a.id !== id));
+    }
+  }, [user]);
+
+  const setDefaultAddress = useCallback(async (id: string) => {
+    if (user && !id.startsWith("addr-")) {
+      try {
+        const addrToUpdate = addresses.find((a) => a.id === id);
+        if (!addrToUpdate) return;
+        const res = await fetch(`/api/customer/addresses/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...addrToUpdate, isDefault: true }),
+        });
+        const json = await res.json();
+        if (json.success) {
+          const addrRes = await fetch("/api/customer/addresses");
+          const addrJson = await addrRes.json();
+          if (addrJson.success) setAddresses(addrJson.data);
+        } else {
+          alert(json.error || "Failed to set default address");
+        }
+      } catch (e: any) {
+        alert(e.message);
+      }
+    } else {
+      setAddresses((prev) =>
+        prev.map((a) => ({ ...a, isDefault: a.id === id }))
+      );
+    }
+  }, [user, addresses]);
+
+  // ─── Order Checkout Actions ─────────────────────────────────────────────────
+
+  const placeOrder = useCallback(async (customerName: string, customerEmail: string) => {
+    if (!user) {
+      return { success: false, error: "Please sign in to place an order." };
+    }
+
+    try {
+      const orderItems = items.map((i) => ({
+        productId: i.id,
+        name: i.name,
+        price: i.price,
+        quantity: i.quantity,
+        size: i.size,
+        color: i.color || "Neutral",
+        image: i.image,
+      }));
+
+      const defaultAddress = addresses.find((a) => a.isDefault) || addresses[0];
+
+      const payload = {
+        customerName,
+        customerEmail,
+        items: orderItems,
+        shippingAddressId: defaultAddress?.id,
+        paymentMethod: "Visa Premium (•••• 4321)",
+      };
+
+      const res = await fetch("/api/customer/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        clearCart();
+        return { success: true, data: json.data };
+      } else {
+        return { success: false, error: json.error || "Failed to place order." };
+      }
+    } catch (e: any) {
+      return { success: false, error: e.message || "An unexpected error occurred." };
+    }
+  }, [user, items, addresses, clearCart]);
 
   // ─── Derived Values ─────────────────────────────────────────────────────────
 
@@ -203,6 +374,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       value={{
         items,
         addresses,
+        user,
+        isUserLoading,
         isCartOpen,
         isSearchOpen,
         addItem,
@@ -217,8 +390,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         updateAddress,
         removeAddress,
         setDefaultAddress,
+        placeOrder,
         itemCount,
         subtotal,
+        refreshSession,
       }}
     >
       {children}

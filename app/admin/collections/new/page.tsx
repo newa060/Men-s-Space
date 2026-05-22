@@ -32,6 +32,8 @@ export default function NewProductPage() {
   const [status, setStatus] = useState<"Active" | "Draft" | "Archived">("Draft");
   const [selectedSizes, setSelectedSizes] = useState<string[]>(["M", "L"]);
   const [imageUrl, setImageUrl] = useState("");
+  const [isNewArrival, setIsNewArrival] = useState(false);
+  const [series, setSeries] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -51,8 +53,8 @@ export default function NewProductPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 800));
-    addProduct({
+
+    await addProduct({
       name,
       slug,
       description,
@@ -61,10 +63,13 @@ export default function NewProductPage() {
       category,
       status,
       sizes: selectedSizes,
+      isNewArrival,
+      series,
       image:
         imageUrl ||
         "https://lh3.googleusercontent.com/aida-public/AB6AXuCNVuRwR-HDXuwncIMmkOYzlw6uHIkLQm__rl7GOA-bB-qIwAYdcQE58MjtPDWnua2Ih5PViCli_e4wHbJnlYniFt4rZ62ChCfy2PglhBgS4ag0D_TM4_BgfIAOy1rHDQ3WtetxXlVSEek59BrueM3Oq-J4USYYC96igJoak67jxcLUWpsZqIz0Ylqg4C889Q7NtWUWJUWPbWQRVCRNproHnGIOhLD41VtBXwAvtC0_zoPA1hI3ApgirEmE1MWQ2PKTWmP6NBpgtFCo",
     });
+
     setSaving(false);
     setSaved(true);
     setTimeout(() => router.push("/admin/collections"), 1000);
@@ -285,6 +290,42 @@ export default function NewProductPage() {
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* New Arrivals Toggle */}
+                <div className="space-y-3 pt-2 border-t border-outline-variant/30">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div
+                      onClick={() => setIsNewArrival(!isNewArrival)}
+                      className={`w-4 h-4 border flex items-center justify-center transition-all ${
+                        isNewArrival
+                          ? "bg-primary border-primary"
+                          : "border-outline-variant group-hover:border-primary"
+                      }`}
+                    >
+                      {isNewArrival && (
+                        <span className="material-symbols-outlined text-on-primary text-[12px]">check</span>
+                      )}
+                    </div>
+                    <span className="text-[12px] font-semibold tracking-widest uppercase text-on-surface">
+                      Feature in New Arrivals
+                    </span>
+                  </label>
+
+                  {isNewArrival && (
+                    <div className="space-y-1.5 pl-7">
+                      <label className="text-[9px] font-bold tracking-widest uppercase text-on-surface-variant">
+                        Series / Label
+                      </label>
+                      <input
+                        type="text"
+                        value={series}
+                        onChange={(e) => setSeries(e.target.value)}
+                        placeholder="e.g. Series 02 / Tech"
+                        className="w-full bg-surface-container border border-outline-variant px-3 py-2 text-[13px] text-on-surface placeholder:text-outline focus:outline-none focus:border-primary transition-colors"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">

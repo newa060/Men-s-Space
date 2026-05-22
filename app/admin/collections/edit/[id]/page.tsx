@@ -25,6 +25,8 @@ export default function EditProductPage() {
   const [status, setStatus] = useState<"Active" | "Draft" | "Archived">("Draft");
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [imageUrl, setImageUrl] = useState("");
+  const [isNewArrival, setIsNewArrival] = useState(false);
+  const [series, setSeries] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [notFound, setNotFound] = useState(false);
@@ -41,6 +43,8 @@ export default function EditProductPage() {
       setStatus(product.status);
       setSelectedSizes(product.sizes || []);
       setImageUrl(product.image);
+      setIsNewArrival(!!product.isNewArrival);
+      setSeries(product.series || "");
     } else {
       setNotFound(true);
     }
@@ -66,6 +70,8 @@ export default function EditProductPage() {
       status,
       sizes: selectedSizes,
       image: imageUrl,
+      isNewArrival,
+      series,
     });
     setSaving(false);
     setSaved(true);
@@ -303,6 +309,42 @@ export default function EditProductPage() {
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* New Arrivals Toggle */}
+                <div className="space-y-3 pt-2 border-t border-outline-variant/30">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div
+                      onClick={() => setIsNewArrival(!isNewArrival)}
+                      className={`w-4 h-4 border flex items-center justify-center transition-all ${
+                        isNewArrival
+                          ? "bg-primary border-primary"
+                          : "border-outline-variant group-hover:border-primary"
+                      }`}
+                    >
+                      {isNewArrival && (
+                        <span className="material-symbols-outlined text-on-primary text-[12px]">check</span>
+                      )}
+                    </div>
+                    <span className="text-[12px] font-semibold tracking-widest uppercase text-on-surface">
+                      Feature in New Arrivals
+                    </span>
+                  </label>
+ 
+                  {isNewArrival && (
+                    <div className="space-y-1.5 pl-7">
+                      <label className="text-[9px] font-bold tracking-widest uppercase text-on-surface-variant">
+                        Series / Label
+                      </label>
+                      <input
+                        type="text"
+                        value={series}
+                        onChange={(e) => setSeries(e.target.value)}
+                        placeholder="e.g. Series 02 / Tech"
+                        className="w-full bg-surface-container border border-outline-variant px-3 py-2 text-[13px] text-on-surface placeholder:text-outline focus:outline-none focus:border-primary transition-colors"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">

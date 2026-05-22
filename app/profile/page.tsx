@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { User, ShoppingBag, MapPin, CreditCard, ChevronRight, Edit2 } from "lucide-react";
 
 export default function UserProfile() {
+  const router = useRouter();
   const user = {
     name: "Julian Vane",
     email: "julian.vane@brutalist.com",
@@ -82,6 +85,17 @@ export default function UserProfile() {
               className="w-full flex justify-between items-center px-6 py-4 hover:bg-surface-container transition-colors text-sm text-left"
             >
               <span className="flex items-center gap-3"><CreditCard size={16} /> Payment Methods</span>
+              <ChevronRight size={14} className="text-secondary" />
+            </button>
+            <button
+              onClick={async () => {
+                const supabase = createClient();
+                await supabase.auth.signOut();
+                router.push('/sign-in');
+              }}
+              className="w-full flex justify-between items-center px-6 py-4 hover:bg-surface-container transition-colors text-sm text-left text-primary"
+            >
+              <span className="flex items-center gap-3"><User size={16} /> Log Out</span>
               <ChevronRight size={14} className="text-secondary" />
             </button>
           </div>

@@ -4,24 +4,56 @@ import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { useCart } from "@/context/CartContext";
 
 export default function SignInUp() {
   const router = useRouter();
+  const { refreshSession } = useCart();
   const [isSignIn, setIsSignIn] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // Form states
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Redirect to admin dashboard if email is admin@aesthete.com
-    if (email.toLowerCase() === "admin@aesthete.com") {
-      router.push("/admin/dashboard");
-    } else {
-      router.push("/profile");
+    setLoading(true);
+    setError("");
+
+    try {
+      const endpoint = isSignIn ? "/api/auth/login" : "/api/auth/register";
+      const payload = isSignIn ? { email, password } : { email, password, fullName: name };
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await response.json();
+
+      if (!json.success) {
+        setError(json.error || "Authentication failed");
+        setLoading(false);
+        return;
+      }
+
+      await refreshSession();
+
+      const role = json.data?.user?.role;
+      if (role === "admin") {
+        router.push("/admin/dashboard");
+      } else {
+        router.push("/profile");
+      }
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -82,16 +114,23 @@ export default function SignInUp() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-xs p-3 uppercase tracking-wider">
+                {error}
+              </div>
+            )}
+
             {!isSignIn && (
               <div className="space-y-1.5">
                 <label className="text-xs label-caps text-secondary">Full Name</label>
                 <input
                   type="text"
                   required
+                  disabled={loading}
                   placeholder="Alex Chen"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-surface-container border border-outline-variant px-4 py-3 text-sm focus:outline-none focus:border-primary placeholder:text-outline-variant"
+                  className="w-full bg-surface-container border border-outline-variant px-4 py-3 text-sm focus:outline-none focus:border-primary placeholder:text-outline-variant disabled:opacity-50"
                 />
               </div>
             )}
@@ -101,10 +140,11 @@ export default function SignInUp() {
               <input
                 type="email"
                 required
+                disabled={loading}
                 placeholder="email@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-surface-container border border-outline-variant px-4 py-3 text-sm focus:outline-none focus:border-primary placeholder:text-outline-variant"
+                className="w-full bg-surface-container border border-outline-variant px-4 py-3 text-sm focus:outline-none focus:border-primary placeholder:text-outline-variant disabled:opacity-50"
               />
             </div>
 
@@ -114,15 +154,17 @@ export default function SignInUp() {
                 <input
                   type={showPassword ? "text" : "password"}
                   required
+                  disabled={loading}
                   placeholder={isSignIn ? "••••••••" : "Minimum 8 characters"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-surface-container border border-outline-variant px-4 py-3 text-sm focus:outline-none focus:border-primary placeholder:text-outline-variant pr-10"
+                  className="w-full bg-surface-container border border-outline-variant px-4 py-3 text-sm focus:outline-none focus:border-primary placeholder:text-outline-variant pr-10 disabled:opacity-50"
                 />
                 <button
                   type="button"
+                  disabled={loading}
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary hover:text-primary transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary hover:text-primary transition-colors disabled:opacity-50"
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -133,7 +175,8 @@ export default function SignInUp() {
               <div className="text-right">
                 <button
                   type="button"
-                  className="text-xs text-secondary hover:text-primary transition-colors underline"
+                  disabled={loading}
+                  className="text-xs text-secondary hover:text-primary transition-colors underline disabled:opacity-50"
                 >
                   Forgot Password?
                 </button>
@@ -143,9 +186,10 @@ export default function SignInUp() {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-primary text-on-primary py-4 text-label-caps tracking-[0.2em] font-semibold flex items-center justify-center gap-2 hover:bg-neutral-850 transition-colors uppercase mt-6"
+              disabled={loading}
+              className="w-full bg-primary text-on-primary py-4 text-label-caps tracking-[0.2em] font-semibold flex items-center justify-center gap-2 hover:bg-neutral-850 transition-colors uppercase mt-6 disabled:opacity-50"
             >
-              {isSignIn ? "Sign In" : "Create Account"} <ArrowRight size={14} />
+              {loading ? (isSignIn ? "Signing In..." : "Creating Account...") : (isSignIn ? "Sign In" : "Create Account")} <ArrowRight size={14} />
             </button>
           </form>
 
