@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { uploadImage } from "@/lib/cloudinary/upload";
+import { uploadImageBuffer } from "@/lib/cloudinary/upload";
+
+const MAX_SIZE_MB = 10;
+
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
@@ -10,13 +14,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "No file uploaded" }, { status: 400 });
     }
 
-    // Convert file to base64 Data URI
+    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+      return NextResponse.json(
+        { success: false, error: `Image must be smaller than ${MAX_SIZE_MB}MB.` },
+        { status: 400 }
+      );
+    }
+
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const base64File = `data:${file.type};base64,${buffer.toString("base64")}`;
-
     const folder = (formData.get("folder") as string) || "aesthete";
-    const uploadResult = await uploadImage(base64File, folder);
+
+    const uploadResult = await uploadImageBuffer(buffer, folder);
 
     if (!uploadResult.success) {
       return NextResponse.json({ success: false, error: uploadResult.error }, { status: 500 });
@@ -29,7 +38,8 @@ export async function POST(request: Request) {
         publicId: uploadResult.public_id,
       },
     });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Upload failed";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

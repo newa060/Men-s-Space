@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { GalleryItem } from "@/lib/gallery/format";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, ArrowUpRight } from "lucide-react";
@@ -8,17 +9,22 @@ import { motion } from "framer-motion";
 import { useAdmin } from "@/context/AdminContext";
 import { ProductCardImage } from "@/components/ui/ProductCardImage";
 
-const ARCHIVE_SLIDES = [
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuDKY5VkcHZAdan2pUTOU_GC3FbEBM3vMRcOXjhprRMHnGiJmQKkBCkuT7KuAdKstLUaARMHt0O2wkLVwBRdn-tnbqlcH92jgL3bcFf2HGtG4kRWDgm20QkfYbDMMfJOko7Jv6bdvgd9oh4-pyVAvRUTnBhk0b4FGd77AQ_u_1IwcFtAIFU-AQWQ4EV0o48WJ-UPdKqgkIq84Ue1m2NbNEp8WpJHCKFkSP91-JsQvE3xFjxTSUK8AfHSB-YMGxq69wR4mNNc1qX-6sn-",
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuC75mDsWHE3V5HvHksqRd8_CaJx5WYNOONsRCCNJMdwpKXwqAaMe_PMH6l0a1czzB9TXURIN54Ds0dfYF60LiieT52Dw2Vy8-ydRfXb-xCcYVZ0exn3bdLU1XFDk7g-UrUj-d4mKi1AKGOVndQ2flQ8-aWZCQSuEbxhpm8FXdg1qlzENRUx32EPaXa-NYb0-iMBdNGl3xMebvEoenYeia1m1BeTiAI5rR00UPlGDzEHhnMWqp25iBHNSOPW0fHrJn3PxR0BntWIyizG",
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuD_zgefi49hxiCPA-qZjUBWWgDOkSsY1S1JRPLfO_7xcixpnbP0xnX-XWMtTHbvE-5FDtVsBNuxno1tj-qSbaT6imW0dKWC9DXJ-HmzTqQaBBFcyNeQ5cnMbWIl_w-JA3zL8fCB9XXBq6E2f-BSh7hD0hqniLZUVn75p79KZaVfXm_UGtPbSe98o117eeqUMlIS-xTYcKBj9Mp19a0zZ2xTAgzjzBCLsFDLva7g6Qdsu-YQM5XMC6h-FzWBKZ4SDoyjhC5g-uhB2uOL",
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuAzNzUR7jhIyhaNWy9bwUK3pD5Gagjvnsk7Bmy1ibEzNNtVJ9ASs-HMYkDhqsdViTcI5IW4A5m0WZvZeIiK_VsCfO6xPejtMS7i5-tfM5pncQqsQHzQ5pdAWqLcqnNBraE_Ii_-mDkf_80ngLppJpkF8ew9YyJ7xGLVbaZ3JKjPAP2nmnqIGmgX2q-1Qtc2xq47Q9zLL4IrTT-tA2bzSzVVZSJXub8LPZTeAWIlf1V9yFedWZ03dClMPr0NYLpWZlvPdziFt9fW7WvP",
-];
-
 export default function NewArrivals() {
-  const { products } = useAdmin();
+  const { products, cmsData } = useAdmin();
   const archiveRef = useRef<HTMLDivElement>(null);
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [archiveSlides, setArchiveSlides] = useState<GalleryItem[]>([]);
+
+  useEffect(() => {
+    fetch("/api/gallery")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success && json.data?.length) {
+          setArchiveSlides(json.data);
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   const dynamicNewArrivals = products.filter(
     (p) => p.isNewArrival && p.status === "Active"
@@ -46,10 +52,11 @@ export default function NewArrivals() {
       <section className="relative h-[80vh] min-h-[500px] w-full overflow-hidden flex items-center justify-center">
         <div className="absolute inset-0 bg-neutral-950">
           <Image
-            src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=2040&auto=format&fit=crop"
-            alt="New Arrivals Series 02 Hero"
+            src={cmsData.promoImage}
+            alt={cmsData.promoHeading}
             fill
             priority
+            unoptimized
             className="object-cover opacity-70"
             sizes="100vw"
           />
@@ -61,14 +68,17 @@ export default function NewArrivals() {
           className="relative z-10 text-center px-6"
         >
           <p className="text-label-caps tracking-[0.4em] mb-4 text-on-primary/95">
-            COLLECTION 2026
+            {cmsData.promoIntro}
           </p>
           <h1 className="text-4xl md:text-7xl font-light text-on-primary tracking-tighter uppercase mb-8">
-            New Arrivals / Series 02
+            {cmsData.promoHeading}
           </h1>
-          <button className="bg-on-primary text-primary px-8 py-4 text-label-caps tracking-widest font-semibold hover:bg-white/90 transition-colors">
-            Explore the Series
-          </button>
+          <Link
+            href="/collection"
+            className="inline-block bg-on-primary text-primary px-8 py-4 text-label-caps tracking-widest font-semibold hover:bg-white/90 transition-colors"
+          >
+            {cmsData.promoCtaText}
+          </Link>
         </motion.div>
       </section>
 
@@ -180,15 +190,16 @@ export default function NewArrivals() {
           ref={archiveRef}
           className="flex gap-6 overflow-x-auto no-scrollbar px-5 md:px-16 cursor-grab active:cursor-grabbing max-w-screen-xl mx-auto"
         >
-          {ARCHIVE_SLIDES.map((src, index) => (
+          {archiveSlides.map((slide) => (
             <div
-              key={index}
+              key={slide.id}
               className="flex-none w-[340px] md:w-[400px] aspect-square bg-background relative overflow-hidden group border border-outline-variant/30"
             >
               <Image
-                src={src}
-                alt={`Archive Slide ${index + 1}`}
+                src={slide.image}
+                alt={slide.title}
                 fill
+                unoptimized
                 className="object-cover grayscale group-hover:grayscale-0 group-hover:scale-[1.02] transition-all duration-700"
                 sizes="(max-width: 768px) 340px, 400px"
               />

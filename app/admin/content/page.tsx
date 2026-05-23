@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import TopNavBar from "@/components/layout/TopNavBar";
-import { useAdmin, FeedbackItem } from "@/context/AdminContext";
+import { AdminImageField } from "@/components/admin/AdminImageField";
+import { uploadImageFile } from "@/lib/upload/client";
+import { useAdmin } from "@/context/AdminContext";
+import type { GalleryItem } from "@/lib/gallery/format";
 
 type TabType = "hero" | "gallery" | "feedback" | "arrivals";
 
@@ -18,38 +21,161 @@ export default function ContentPage() {
   const [heroImage, setHeroImage] = useState(cmsData.heroImage);
   const [heroCtaText, setHeroCtaText] = useState(cmsData.heroCtaText);
   const [featuredCategory, setFeaturedCategory] = useState(cmsData.featuredCategory);
+  const [promoImage, setPromoImage] = useState(cmsData.promoImage);
+  const [promoHeading, setPromoHeading] = useState(cmsData.promoHeading);
+  const [promoCtaText, setPromoCtaText] = useState(cmsData.promoCtaText);
+  const [promoIntro, setPromoIntro] = useState(cmsData.promoIntro);
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const handleSaveHero = () => {
+  const handlePublishChanges = async () => {
     setSaving(true);
-    setTimeout(() => {
-      updateCmsData({
-        heroTitle,
-        heroSubtitle,
-        heroImage,
-        heroCtaText,
-        featuredCategory,
-      });
-      setSaving(false);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    }, 600);
+    setSaved(false);
+    await updateCmsData({
+      heroTitle,
+      heroSubtitle,
+      heroImage,
+      heroCtaText,
+      featuredCategory,
+      promoImage,
+      promoHeading,
+      promoCtaText,
+      promoIntro,
+    });
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
   };
 
-  // Mock Gallery data state
-  const [galleryItems, setGalleryItems] = useState([
-    { id: "g-1", title: "Concrete Study 01", image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDCRza8SyWDjM8Z6rfUc0uu9Lx_tvZudo6A_50JtEn2m4VFogGAhbcbX5wRcK-s3QJeOTyNWRwZ19OWmpHin275qsTGARqqShf7IO2TZBed4BLBRRPFDYg5C6l8PzYew1DIXC1oVU1w2-v-w7JKUNoUGv3s8SABkUb9MGrpj7SVCfN1rMenAJ6c9AghQxEl0fMZR8JKG3WI5cvLFS9YbdPokYbiSjnQSmpcwL08P8ccYEhukQGA9VFJ_rKgeyTINosOzxoY_VXHOdZA" },
-    { id: "g-2", title: "Raw Silk Detail", image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBo0FPqj-UsM-qhu96rxn5suXidLzzqFBwyKaGWHOjZpxaKGZAAN5Aa-YzM2mNw4baIbYzEp8t6d_Rs6qUHOtRmYqbKOmbnKUX7NLAizJZQdeIxQlf9nq1FWvIC98Goi7_f_SqN6cZiyn3GOY1ISCJAa_woqcFGpSJr3noZh0mNr3tm_a_A6joaWe9LPfeTDRnVDl87Bu4BZxpRS3nNT6WhjPntSxxZ5zJtANbK1tf86-JMzFqrkjg_HFWQv4sJXjRJUZ8ZSsXceSxP" },
-  ]);
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
+  const [galleryLoading, setGalleryLoading] = useState(true);
 
-  const removeGalleryItem = (id: string) => {
-    setGalleryItems(prev => prev.filter(item => item.id !== id));
+  const galleryReplaceRef = useRef<HTMLInputElement>(null);
+  const [replacingGalleryId, setReplacingGalleryId] = useState<string | null>(null);
+  const [galleryUploading, setGalleryUploading] = useState(false);
+  const [galleryError, setGalleryError] = useState("");
+
+  const [showAddGallery, setShowAddGallery] = useState(false);
+  const [newGalleryTitle, setNewGalleryTitle] = useState("");
+  const [newGalleryImage, setNewGalleryImage] = useState("");
+
+  const fetchGalleryItems = useCallback(async () => {
+    setGalleryLoading(true);
+    try {
+      const res = await fetch("/api/admin/gallery");
+      const json = await res.json();
+      if (json.success) setGalleryItems(json.data);
+      else setGalleryError(json.error || "Failed to load gallery");
+    } catch {
+      setGalleryError("Failed to load gallery");
+    } finally {
+      setGalleryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchGalleryItems();
+  }, [fetchGalleryItems]);
+
+  useEffect(() => {
+    setHeroTitle(cmsData.heroTitle);
+    setHeroSubtitle(cmsData.heroSubtitle);
+    setHeroImage(cmsData.heroImage);
+    setHeroCtaText(cmsData.heroCtaText);
+    setFeaturedCategory(cmsData.featuredCategory);
+    setPromoImage(cmsData.promoImage);
+    setPromoHeading(cmsData.promoHeading);
+    setPromoCtaText(cmsData.promoCtaText);
+    setPromoIntro(cmsData.promoIntro);
+  }, [cmsData]);
+
+  const removeGalleryItem = async (id: string) => {
+    setGalleryError("");
+    try {
+      const res = await fetch(`/api/admin/gallery/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || "Failed to delete slide");
+      setGalleryItems((prev) => prev.filter((item) => item.id !== id));
+    } catch (err: unknown) {
+      setGalleryError(err instanceof Error ? err.message : "Failed to delete slide");
+    }
   };
 
   const handleUpdateGalleryTitle = (id: string, newTitle: string) => {
-    setGalleryItems(prev => prev.map(item => item.id === id ? { ...item, title: newTitle } : item));
+    setGalleryItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, title: newTitle } : item))
+    );
+  };
+
+  const saveGalleryTitle = async (id: string, title: string) => {
+    const trimmed = title.trim();
+    if (!trimmed) return;
+    try {
+      const res = await fetch(`/api/admin/gallery/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: trimmed }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || "Failed to save title");
+    } catch (err: unknown) {
+      setGalleryError(err instanceof Error ? err.message : "Failed to save title");
+    }
+  };
+
+  const handleReplaceGalleryImage = async (file: File) => {
+    if (!replacingGalleryId) return;
+    setGalleryError("");
+    setGalleryUploading(true);
+    try {
+      const url = await uploadImageFile(file, "studio");
+      const res = await fetch(`/api/admin/gallery/${replacingGalleryId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: url }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || "Failed to save image");
+      setGalleryItems((prev) =>
+        prev.map((item) => (item.id === replacingGalleryId ? json.data : item))
+      );
+    } catch (err: unknown) {
+      setGalleryError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setGalleryUploading(false);
+      setReplacingGalleryId(null);
+      if (galleryReplaceRef.current) galleryReplaceRef.current.value = "";
+    }
+  };
+
+  const handleAddGallerySlide = async () => {
+    if (!newGalleryImage.trim()) {
+      setGalleryError("Add an image before saving the slide.");
+      return;
+    }
+    setGalleryError("");
+    setGalleryUploading(true);
+    try {
+      const res = await fetch("/api/admin/gallery", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: newGalleryTitle.trim() || "New Slide",
+          image: newGalleryImage.trim(),
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || "Failed to add slide");
+      setGalleryItems((prev) => [...prev, json.data]);
+      setNewGalleryTitle("");
+      setNewGalleryImage("");
+      setShowAddGallery(false);
+    } catch (err: unknown) {
+      setGalleryError(err instanceof Error ? err.message : "Failed to add slide");
+    } finally {
+      setGalleryUploading(false);
+    }
   };
 
   return (
@@ -74,7 +200,7 @@ export default function ContentPage() {
                 Discard
               </button>
               <button
-                onClick={handleSaveHero}
+                onClick={handlePublishChanges}
                 className="bg-primary text-on-primary font-bold text-[11px] uppercase tracking-widest px-6 py-3 flex items-center gap-2 hover:opacity-90 transition-all shadow-lg"
               >
                 <span className="material-symbols-outlined text-[18px]">save</span>
@@ -153,28 +279,14 @@ export default function ContentPage() {
                     </div>
                   </div>
 
-                  <div className="bg-surface-container border border-outline-variant p-6 space-y-4">
-                    <div className="flex justify-between items-center">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Hero Background Visual</label>
-                    </div>
-                    <div className="aspect-[16/9] bg-surface-container-highest border border-outline-variant overflow-hidden relative">
-                      <Image
-                        src={heroImage}
-                        alt="Hero background preview"
-                        fill
-                        className="object-cover opacity-80"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">Image URL</label>
-                      <input
-                        type="url"
-                        value={heroImage}
-                        onChange={(e) => setHeroImage(e.target.value)}
-                        className="w-full bg-surface border border-outline-variant px-3 py-2 text-[12px] text-on-surface focus:outline-none focus:border-primary"
-                        placeholder="https://..."
-                      />
-                    </div>
+                  <div className="bg-surface-container border border-outline-variant p-6">
+                    <AdminImageField
+                      value={heroImage}
+                      onChange={setHeroImage}
+                      label="Hero Background Visual"
+                      aspectClass="aspect-[16/9]"
+                      folder="studio"
+                    />
                   </div>
                 </div>
               </motion.section>
@@ -191,9 +303,25 @@ export default function ContentPage() {
               >
                 <div className="flex flex-col gap-2">
                   <h3 className="text-[20px] font-light text-on-surface italic font-serif">Storefront Slide Gallery</h3>
-                  <p className="text-[13px] text-on-surface-variant">Curate the horizontal slide carousel featured on the main index.</p>
+                  <p className="text-[13px] text-on-surface-variant">
+                    Curate the horizontal slide carousel on the homepage. Changes save automatically.
+                  </p>
                 </div>
 
+                <input
+                  ref={galleryReplaceRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleReplaceGalleryImage(file);
+                  }}
+                />
+
+                {galleryLoading ? (
+                  <p className="text-[13px] text-on-surface-variant italic">Loading gallery…</p>
+                ) : (
                 <div className="flex gap-6 overflow-x-auto pb-4 custom-scrollbar">
                   {galleryItems.map((item) => (
                     <div key={item.id} className="shrink-0 w-64 group bg-surface-container p-3 border border-outline-variant">
@@ -202,12 +330,27 @@ export default function ContentPage() {
                           src={item.image}
                           alt={item.title}
                           fill
+                          unoptimized
                           className="object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
                         />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                           <button
+                            type="button"
+                            onClick={() => {
+                              setReplacingGalleryId(item.id);
+                              galleryReplaceRef.current?.click();
+                            }}
+                            disabled={galleryUploading}
+                            className="w-8 h-8 rounded-full bg-background flex items-center justify-center text-primary hover:scale-105 transition-all disabled:opacity-50"
+                            aria-label="Replace image"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">upload</span>
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => removeGalleryItem(item.id)}
                             className="w-8 h-8 rounded-full bg-background flex items-center justify-center text-error hover:scale-105 transition-all"
+                            aria-label="Delete slide"
                           >
                             <span className="material-symbols-outlined text-[16px]">delete</span>
                           </button>
@@ -217,16 +360,71 @@ export default function ContentPage() {
                         type="text"
                         value={item.title}
                         onChange={(e) => handleUpdateGalleryTitle(item.id, e.target.value)}
+                        onBlur={(e) => saveGalleryTitle(item.id, e.target.value)}
                         className="w-full bg-transparent border-none border-b border-outline-variant py-1 text-[12px] text-on-surface focus:border-primary focus:ring-0 outline-none"
                       />
                     </div>
                   ))}
 
-                  <div className="shrink-0 w-64 border-2 border-dashed border-outline-variant flex flex-col items-center justify-center gap-2 text-on-surface-variant hover:border-primary hover:text-primary cursor-pointer transition-all bg-surface-container-low/20">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddGallery((v) => !v)}
+                    className="shrink-0 w-64 border-2 border-dashed border-outline-variant flex flex-col items-center justify-center gap-2 text-on-surface-variant hover:border-primary hover:text-primary transition-all bg-surface-container-low/20 min-h-[280px]"
+                  >
                     <span className="material-symbols-outlined text-[36px]">add_circle</span>
                     <span className="text-[10px] font-bold tracking-widest uppercase">Add Slide</span>
-                  </div>
+                  </button>
                 </div>
+                )}
+
+                {showAddGallery && (
+                  <div className="max-w-sm bg-surface-container border border-outline-variant p-4 space-y-4">
+                    <AdminImageField
+                      value={newGalleryImage}
+                      onChange={setNewGalleryImage}
+                      aspectClass="aspect-[3/4]"
+                      folder="studio"
+                      emptyLabel="Upload slide image"
+                    />
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">
+                        Slide Title
+                      </label>
+                      <input
+                        type="text"
+                        value={newGalleryTitle}
+                        onChange={(e) => setNewGalleryTitle(e.target.value)}
+                        placeholder="e.g. Concrete Study 02"
+                        className="w-full bg-surface border border-outline-variant px-3 py-2 text-[12px] text-on-surface focus:outline-none focus:border-primary"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleAddGallerySlide}
+                        disabled={galleryUploading}
+                        className="flex-1 py-2 bg-primary text-on-primary text-[10px] font-bold tracking-widest uppercase hover:opacity-90 disabled:opacity-50"
+                      >
+                        {galleryUploading ? "Saving…" : "Add to Gallery"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAddGallery(false);
+                          setNewGalleryTitle("");
+                          setNewGalleryImage("");
+                        }}
+                        className="px-4 py-2 border border-outline-variant text-[10px] font-bold tracking-widest uppercase text-on-surface-variant hover:text-on-surface"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {galleryError && (
+                  <p className="text-[11px] text-error">{galleryError}</p>
+                )}
               </motion.section>
             )}
 
@@ -306,17 +504,21 @@ export default function ContentPage() {
               >
                 <div className="flex flex-col gap-2">
                   <h3 className="text-[20px] font-light text-on-surface italic font-serif">Promo Banner &amp; Editorial Drops</h3>
-                  <p className="text-[13px] text-on-surface-variant">Adjust banner titles and copy for mid-page promotion sections.</p>
+                  <p className="text-[13px] text-on-surface-variant">
+                    Controls the New Arrivals page hero and the homepage promo banner. Click Publish Changes to save.
+                  </p>
                 </div>
 
                 <div className="bg-surface-container border border-outline-variant p-6 flex flex-col gap-6">
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="aspect-square bg-surface-container-highest border border-outline-variant relative">
-                      <Image
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBo0FPqj-UsM-qhu96rxn5suXidLzzqFBwyKaGWHOjZpxaKGZAAN5Aa-YzM2mNw4baIbYzEp8t6d_Rs6qUHOtRmYqbKOmbnKUX7NLAizJZQdeIxQlf9nq1FWvIC98Goi7_f_SqN6cZiyn3GOY1ISCJAa_woqcFGpSJr3noZh0mNr3tm_a_A6joaWe9LPfeTDRnVDl87Bu4BZxpRS3nNT6WhjPntSxxZ5zJtANbK1tf86-JMzFqrkjg_HFWQv4sJXjRJUZ8ZSsXceSxP"
-                        alt="Promo image"
-                        fill
-                        className="object-cover grayscale"
+                    <div>
+                      <AdminImageField
+                        value={promoImage}
+                        onChange={setPromoImage}
+                        label="Promo Visual"
+                        aspectClass="aspect-square"
+                        folder="studio"
+                        emptyLabel="Upload promo image"
                       />
                     </div>
                     <div className="lg:col-span-2 space-y-4">
@@ -324,24 +526,27 @@ export default function ContentPage() {
                         <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Promotion Heading</label>
                         <input
                           type="text"
-                          defaultValue="THE FALL EDIT: TEXTILE STUDY"
+                          value={promoHeading}
+                          onChange={(e) => setPromoHeading(e.target.value)}
                           className="bg-background border border-outline-variant text-on-surface p-3 font-serif italic text-[16px] focus:outline-none focus:border-primary"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Eyebrow / Series Label</label>
+                        <input
+                          type="text"
+                          value={promoIntro}
+                          onChange={(e) => setPromoIntro(e.target.value)}
+                          className="bg-background border border-outline-variant text-on-surface p-3 text-[11px] font-semibold tracking-widest uppercase focus:outline-none focus:border-primary"
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">CTA Button Label</label>
                         <input
                           type="text"
-                          defaultValue="EXPLORE THE COLLECTION"
+                          value={promoCtaText}
+                          onChange={(e) => setPromoCtaText(e.target.value)}
                           className="bg-background border border-outline-variant text-on-surface p-3 text-[11px] font-semibold tracking-widest uppercase focus:outline-none focus:border-primary"
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Intro Copy</label>
-                        <textarea
-                          rows={3}
-                          defaultValue="Discover the intersection of raw silk and structural oak. A collection designed for the tactile minimalist."
-                          className="bg-background border border-outline-variant text-on-surface p-3 text-[13px] focus:outline-none focus:border-primary resize-none"
                         />
                       </div>
                     </div>

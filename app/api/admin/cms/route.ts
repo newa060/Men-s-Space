@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { DEFAULT_CMS, formatCms } from "@/lib/cms/format";
 
 export async function GET() {
   try {
@@ -11,31 +12,13 @@ export async function GET() {
       .single();
 
     if (error || !cms) {
-      // Return defaults if no CMS row exists yet
-      return NextResponse.json({
-        success: true,
-        data: {
-          heroTitle: "Architectural Forms",
-          heroSubtitle: "A dialogue between human structure and sartorial precision.",
-          heroImage: "",
-          heroCtaText: "Shop Collection",
-          featuredCategory: "Architecture",
-        },
-      });
+      return NextResponse.json({ success: true, data: DEFAULT_CMS });
     }
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        heroTitle: cms.hero_title,
-        heroSubtitle: cms.hero_subtitle,
-        heroImage: cms.hero_image,
-        heroCtaText: cms.hero_cta_text,
-        featuredCategory: cms.featured_category,
-      },
-    });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    return NextResponse.json({ success: true, data: formatCms(cms) });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to load CMS";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
 
@@ -44,12 +27,16 @@ export async function PUT(request: Request) {
     const body = await request.json();
     const supabase = createClient(true);
 
-    const dbUpdates: Record<string, any> = {};
+    const dbUpdates: Record<string, string> = {};
     if (body.heroTitle !== undefined) dbUpdates.hero_title = body.heroTitle;
     if (body.heroSubtitle !== undefined) dbUpdates.hero_subtitle = body.heroSubtitle;
     if (body.heroImage !== undefined) dbUpdates.hero_image = body.heroImage;
     if (body.heroCtaText !== undefined) dbUpdates.hero_cta_text = body.heroCtaText;
     if (body.featuredCategory !== undefined) dbUpdates.featured_category = body.featuredCategory;
+    if (body.promoImage !== undefined) dbUpdates.promo_image = body.promoImage;
+    if (body.promoHeading !== undefined) dbUpdates.promo_heading = body.promoHeading;
+    if (body.promoCtaText !== undefined) dbUpdates.promo_cta_text = body.promoCtaText;
+    if (body.promoIntro !== undefined) dbUpdates.promo_intro = body.promoIntro;
 
     const { data: updatedCms, error } = await supabase
       .from("cms_settings")
@@ -62,16 +49,9 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    const formattedCms = {
-      heroTitle: updatedCms.hero_title,
-      heroSubtitle: updatedCms.hero_subtitle,
-      heroImage: updatedCms.hero_image,
-      heroCtaText: updatedCms.hero_cta_text,
-      featuredCategory: updatedCms.featured_category,
-    };
-
-    return NextResponse.json({ success: true, data: formattedCms });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    return NextResponse.json({ success: true, data: formatCms(updatedCms) });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to update CMS";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

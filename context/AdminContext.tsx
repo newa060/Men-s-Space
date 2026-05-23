@@ -36,13 +36,10 @@ export interface Order {
   items: string;
 }
 
-export interface CmsData {
-  heroTitle: string;
-  heroSubtitle: string;
-  heroImage: string;
-  heroCtaText: string;
-  featuredCategory: string;
-}
+import type { CmsData } from "@/lib/cms/format";
+import { DEFAULT_CMS } from "@/lib/cms/format";
+
+export type { CmsData };
 
 export interface FeedbackItem {
   id: string;
@@ -70,13 +67,7 @@ const AdminContext = createContext<AdminContextProps | undefined>(undefined);
 export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [cmsData, setCmsData] = useState<CmsData>({
-    heroTitle: "Architectural Forms",
-    heroSubtitle: "A dialogue between human structure and sartorial precision. Collection 04 is now available.",
-    heroImage: "https://lh3.googleusercontent.com/aida-public/AB6AXuBga5lcdNTZo5qWObfMmw_RL3ZwUJtQp_vG9UficR9a_WYSqzsoM3FkgcXjOx82IytbLGbcK72QerzF5Ince2lrPNcUUzGEMXs9SSriYR26pfPLsI9dzJjz3DOrvGmj28_gJ23g7xOcCrMqTbfU8SlatF2I1fmA134UU9on7OKs_SdNhYINdOOO3g5JMlqk5Pxpik_5FRN77rU_4Hr_KhJnyX3F96SSsLQtEwSh5zGTrTqAY7N9w3TwaBn0ZsZ-nNmGmd2Adj_J5THD",
-    heroCtaText: "Shop Collection",
-    featuredCategory: "Architecture",
-  });
+  const [cmsData, setCmsData] = useState<CmsData>(DEFAULT_CMS);
   const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
 
   // Load data from server on mount

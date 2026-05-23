@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import TopNavBar from "@/components/layout/TopNavBar";
+import { ProductMediaSection } from "@/components/admin/ProductMediaSection";
 import {
   ProductColorsEditor,
   normalizeProductColors,
@@ -286,92 +286,12 @@ export default function NewProductPage() {
 
             {/* ── Right Column ── */}
             <div className="space-y-6">
-              {/* Media */}
-              <div className="bg-surface-container-low border border-outline-variant p-6 space-y-4">
-                <h3 className="text-[11px] font-bold tracking-widest uppercase text-on-surface-variant border-b border-outline-variant pb-3">
-                  Media
-                </h3>
-                <div className="aspect-[4/5] bg-surface-container border border-outline-variant border-dashed flex flex-col items-center justify-center gap-3 text-on-surface-variant cursor-pointer hover:border-primary hover:text-primary transition-all group relative overflow-hidden">
-                  {imageUrl ? (
-                    <Image
-                      src={imageUrl}
-                      alt="Preview"
-                      fill
-                      unoptimized
-                      className="object-cover"
-                    />
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined text-[40px] opacity-40 group-hover:opacity-70 transition-opacity">
-                        add_photo_alternate
-                      </span>
-                      <p className="text-[11px] font-semibold tracking-widest uppercase text-center">
-                        Upload Image
-                      </p>
-                      <p className="text-[10px] text-outline text-center">
-                        PNG, JPG or WEBP
-                        <br />
-                        Recommended 4:5 ratio
-                      </p>
-                    </>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold tracking-widest uppercase text-on-surface-variant">
-                    Or paste image URL
-                  </label>
-                  <input
-                    type="url"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full bg-surface-container border border-outline-variant px-4 py-2.5 text-[13px] text-on-surface placeholder:text-outline focus:outline-none focus:border-primary transition-colors"
-                  />
-                </div>
-
-                {/* Additional Images */}
-                <div className="space-y-2 pt-2 border-t border-outline-variant/30">
-                  <label className="text-[10px] font-bold tracking-widest uppercase text-on-surface-variant">
-                    Additional Images
-                  </label>
-                  <p className="text-[10px] text-on-surface-variant">
-                    Add more image URLs for the product gallery.
-                  </p>
-                  <div className="space-y-2">
-                    {additionalImages.map((url, i) => (
-                      <div key={i} className="flex gap-2 items-center">
-                        <input
-                          type="url"
-                          value={url}
-                          onChange={(e) => {
-                            const updated = [...additionalImages];
-                            updated[i] = e.target.value;
-                            setAdditionalImages(updated);
-                          }}
-                          placeholder="https://..."
-                          className="flex-1 bg-surface-container border border-outline-variant px-3 py-2 text-[13px] text-on-surface placeholder:text-outline focus:outline-none focus:border-primary transition-colors"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setAdditionalImages((prev) => prev.filter((_, idx) => idx !== i))}
-                          className="text-on-surface-variant hover:text-error transition-colors"
-                          aria-label="Remove image"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">close</span>
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => setAdditionalImages((prev) => [...prev, ""])}
-                      className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase text-primary hover:opacity-70 transition-opacity"
-                    >
-                      <span className="material-symbols-outlined text-[14px]">add</span>
-                      Add Image URL
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <ProductMediaSection
+                imageUrl={imageUrl}
+                onImageUrlChange={setImageUrl}
+                additionalImages={additionalImages}
+                onAdditionalImagesChange={setAdditionalImages}
+              />
 
               {/* Organisation */}
               <div className="bg-surface-container-low border border-outline-variant p-6 space-y-5">

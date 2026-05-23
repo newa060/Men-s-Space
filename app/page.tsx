@@ -4,8 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useAdmin } from "@/context/AdminContext";
+import type { GalleryItem } from "@/lib/gallery/format";
 
 export default function Home() {
   const { cmsData, feedbackItems } = useAdmin();
@@ -104,11 +105,25 @@ export default function Home() {
     startAutoplay();
   };
 
+  const [gallerySlides, setGallerySlides] = useState<GalleryItem[]>([]);
+
   useEffect(() => {
+    fetch("/api/gallery")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success && json.data?.length) {
+          setGallerySlides(json.data);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    if (gallerySlides.length === 0) return;
     startAutoplay();
     return () => stopAutoplay();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [gallerySlides.length]);
 
   const categories = [
     {
@@ -126,14 +141,6 @@ export default function Home() {
       image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBP1Czxk8SBKNJnynu5FMitMWwj7ftDzxlNMvQH4zFa1dBS7ilq-SFtRP0upepE6tTAk7LCL0vxPh7xxau8EbSaSAXx4sRe1GSL5a2POJzZHbml3-HlDlmI3ZVA8E7q4c6LvZTXkuV4snTWHscaMxJX8szK4itrrUIpsGjY1NkgpW5RB0TaEKWY_cohQZ-zrxUt2avgmbQIjTBNJGcj5Sltpg8dJ7pP8Ygmr2MDnBMEvZUL74WvAaE6to7FKJT7p7c4XdUb5b2umVMS",
       href: "/collection?category=accessories",
     },
-  ];
-
-  const instagramPosts = [
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuAfdtI5a5YkOqPU2FO-xAA5JgA3UBM9h7Jt8chGmUhDCEXl49_HKDCwGjcGdGMt-1glmbgnXmE68iUjKit-nmh4LlpjWW6fSLcN7Tw4pje_ek12giXHtONGW9QfBtbbFjtmgKfSLqHIt0qTPQheQ0KWzpS8X6R5hxxcjttu105kgm0d262Obvwaec0TMK-LEUQcs1OPhX3ZPUkSgLlt-xpcVmp3T8qIIpRlfeG3Z8-gKqvpM8cQCgW5YT_qWhvQ8sYCMFgwDjqvk-pS",
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuC43_-tNSM-iUaKdXVN2nHj8ROOOQ7yv_I8xePDRHsStdz0SN53HikOMB2WUU-QVLOVSRDTKN7yYTOUXnAAARemaVyBxgfJ5qm1I3HJDuHUkVLWA-BW2ck055-ry2s5POS1ovdXvlEU5CCZx9qFaz5jQS9eO5SQkpidMZ8dRWBEE9lz8xVge5-Wjda9c1JTTQbjvhS6gEVJlywzJB_-1XdKXyLFTr3E4Aw56mpgnvghFEapwC3sozoISotVux9385c8EFBRIVwlYHuS",
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuDqUGTmPsZppO7pXHheuqcGX-lzF_0iVKIEhWoJJh4mfLd_M1bsIoCgiW0Q_Eao3at5eAgvEXjWcYubnbXTZl8XdF42LsYyG7NGXC9sbEjCSgNYNr-jlqun1kcImrEL1tIjSe9uZPnpAuT6cmyg7yVjb8-U-G_5krHRBs9gT7w8BugWD6k0MaH_QSNeCsUIfWOTnUMbAdQz7nfITw2kzF0vkXROyNA5AThKVWqdOhKS8fxtmNegbEjPY-CE-_qq_HUt7n7CidwZk_zs",
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuDHtO2GNB3P90uvg8mE1u6Yikqhd2mDAcfcJJz7Shgj9n0YJ3EQstaGiwKDWVg1KbVHVkWxfAQRS6z5kicEQ4UhudNCHIoL0g7JrAXVjoAP33ksrEVZ4qxlBeyv7WKeAbfFoBxZ04OvhGk7tVY2SvawvtH9OWDeWwgtq8tIx3WEz6THbjY_Z97eJ0NCRwfEinsznyomaMd3xkgExFV0Na77hKEbanX1KdMmSV3Mtrv8qXRKcfhqikgno5XKHP8Q1FIP2_PH8v7GZoD-",
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuA88lduMSp6lRFR2RNqhrq6s7avvsDYDxkYxeuLiHQwx0ggl0p13M9awx7xextB-6JYx58YnlwFoZmLZKBDROgjBPo4O8BXi2U6IDEev0CflZXYGRvshsgIofi25hziWadEvV__VSKr75FB69jBMVSRRzKZErNi-PqcoeEdYxUEEnnbYdrGouQ1M_VTIWK403DyjKAZi_3RDqt_Cnb9fY6xlyCIbBe9JcJNhLxMbP-USVLRPKwxDZsrItGvPy3pJ8c8sDPvT960YCaP",
   ];
 
   // Dynamic feedback rendering
@@ -228,6 +235,36 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ─── New Arrivals Promo ───────────────────────────────────── */}
+      <section className="max-w-screen-xl mx-auto px-5 md:px-16 py-24 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center border border-outline-variant/40 p-6 md:p-10 bg-surface-container">
+          <div className="aspect-square relative overflow-hidden bg-surface-container-highest">
+            <Image
+              src={cmsData.promoImage}
+              alt={cmsData.promoHeading}
+              fill
+              unoptimized
+              className="object-cover"
+              sizes="(max-width: 1024px) 100vw, 50vw"
+            />
+          </div>
+          <div className="space-y-6">
+            <span className="text-label-caps text-secondary uppercase tracking-widest">
+              {cmsData.promoIntro}
+            </span>
+            <h2 className="text-3xl md:text-4xl font-light italic font-serif text-primary leading-tight">
+              {cmsData.promoHeading}
+            </h2>
+            <Link
+              href="/new-arrivals"
+              className="inline-block bg-primary text-on-primary px-8 py-4 text-label-caps tracking-widest font-semibold hover:bg-primary-container transition-colors border border-primary uppercase"
+            >
+              {cmsData.promoCtaText}
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* ─── Social Gallery Slider ────────────────────────────────── */}
       <section className="bg-surface-container py-24 overflow-hidden w-full">
         <div className="px-5 md:px-16 max-w-screen-xl mx-auto mb-10 flex justify-between items-center">
@@ -260,9 +297,9 @@ export default function Home() {
           style={{ scrollBehavior: "auto" }}
           className="flex gap-6 overflow-x-auto no-scrollbar px-5 md:px-16 cursor-grab active:cursor-grabbing max-w-screen-xl mx-auto"
         >
-          {instagramPosts.map((src, index) => (
+          {gallerySlides.map((slide, index) => (
             <motion.div
-              key={index}
+              key={slide.id}
               initial={{ opacity: 0, y: 15 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "200px" }}
@@ -270,9 +307,10 @@ export default function Home() {
               className="flex-none w-72 md:w-96 aspect-square bg-background relative overflow-hidden group border border-outline-variant/30"
             >
               <Image
-                src={src}
-                alt={`Instagram post ${index + 1}`}
+                src={slide.image}
+                alt={slide.title}
                 fill
+                unoptimized
                 className="object-cover grayscale brightness-90 group-hover:grayscale-0 group-hover:scale-[1.02] transition-all duration-700"
                 sizes="(max-width: 768px) 288px, 384px"
               />

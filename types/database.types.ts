@@ -237,6 +237,10 @@ export interface Database {
           hero_image: string;
           hero_cta_text: string;
           featured_category: string;
+          promo_image: string | null;
+          promo_heading: string | null;
+          promo_cta_text: string | null;
+          promo_intro: string | null;
           updated_at: string;
         };
         Insert: {
@@ -246,6 +250,10 @@ export interface Database {
           hero_image: string;
           hero_cta_text: string;
           featured_category: string;
+          promo_image?: string | null;
+          promo_heading?: string | null;
+          promo_cta_text?: string | null;
+          promo_intro?: string | null;
           updated_at?: string;
         };
         Update: {
@@ -255,6 +263,10 @@ export interface Database {
           hero_image?: string;
           hero_cta_text?: string;
           featured_category?: string;
+          promo_image?: string | null;
+          promo_heading?: string | null;
+          promo_cta_text?: string | null;
+          promo_intro?: string | null;
           updated_at?: string;
         };
       };
