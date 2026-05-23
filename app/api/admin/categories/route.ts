@@ -4,16 +4,18 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET() {
   try {
     const supabase = createClient(true);
-    const { data: feedback, error } = await supabase
-      .from("feedback_items")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("products")
+      .select("category");
 
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, data: feedback });
+    // Derive unique, sorted category names from actual products
+    const unique = Array.from(new Set((data || []).map((p: any) => p.category).filter(Boolean))).sort();
+
+    return NextResponse.json({ success: true, data: unique });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }

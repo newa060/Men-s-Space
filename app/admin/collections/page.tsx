@@ -22,7 +22,7 @@ const stockDot: Record<string, string> = {
 export default function CollectionsPage() {
   const { products, deleteProduct } = useAdmin();
   const [category, setCategory] = useState("All");
-  const [statusFilter, setStatusFilter] = useState("Active");
+  const [statusFilter, setStatusFilter] = useState("All");
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   const filtered = products.filter((p) => {

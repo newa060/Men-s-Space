@@ -3,11 +3,10 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import TopNavBar from "@/components/layout/TopNavBar";
 import { useAdmin } from "@/context/AdminContext";
 
-const CATEGORIES = ["Architecture", "Furniture", "Textiles", "Editorial", "Collections"];
 const SIZES = ["XS", "S", "M", "L", "XL", "XXL", "OS"];
 
 export default function EditProductPage() {
@@ -21,15 +20,35 @@ export default function EditProductPage() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
-  const [category, setCategory] = useState(CATEGORIES[0]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [category, setCategory] = useState("");
+
+  // Load categories from DB
+  useEffect(() => {
+    fetch("/api/admin/categories")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success && json.data.length > 0) {
+          setCategories(json.data);
+        }
+      })
+      .catch(console.error);
+  }, []);
   const [status, setStatus] = useState<"Active" | "Draft" | "Archived">("Draft");
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [imageUrl, setImageUrl] = useState("");
+  const [additionalImages, setAdditionalImages] = useState<string[]>([]);
   const [isNewArrival, setIsNewArrival] = useState(false);
   const [series, setSeries] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [notFound, setNotFound] = useState(false);
+
+  // New category state
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [newCategoryInput, setNewCategoryInput] = useState("");
+  const [newCategoryError, setNewCategoryError] = useState("");
 
   useEffect(() => {
     const product = products.find((p) => p.id === id);
@@ -43,9 +62,17 @@ export default function EditProductPage() {
       setStatus(product.status);
       setSelectedSizes(product.sizes || []);
       setImageUrl(product.image);
+      setAdditionalImages(
+        (product.images || []).filter((img) => img && img !== product.image)
+      );
       setIsNewArrival(!!product.isNewArrival);
       setSeries(product.series || "");
-    } else {
+
+      // If the product's category isn't already in the list, add it
+      setCategories((prev) =>
+        prev.includes(product.category) ? prev : [...prev, product.category].sort()
+      );
+    } else if (products.length > 0) {
       setNotFound(true);
     }
   }, [id, products]);
@@ -56,11 +83,29 @@ export default function EditProductPage() {
     );
   };
 
+  const handleAddCategory = () => {
+    const trimmed = newCategoryInput.trim();
+    if (!trimmed) {
+      setNewCategoryError("Category name cannot be empty.");
+      return;
+    }
+    if (categories.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
+      setNewCategoryError("This category already exists.");
+      return;
+    }
+    setCategories((prev) => [...prev, trimmed]);
+    setCategory(trimmed);
+    setNewCategoryInput("");
+    setNewCategoryError("");
+    setShowNewCategory(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 800));
-    updateProduct(id, {
+    setSaveError("");
+
+    await updateProduct(id, {
       name,
       slug,
       description,
@@ -70,9 +115,11 @@ export default function EditProductPage() {
       status,
       sizes: selectedSizes,
       image: imageUrl,
+      images: [imageUrl, ...additionalImages.filter(Boolean)],
       isNewArrival,
       series,
     });
+
     setSaving(false);
     setSaved(true);
     setTimeout(() => router.push("/admin/collections"), 1000);
@@ -91,7 +138,9 @@ export default function EditProductPage() {
         <div className="flex-1 flex flex-col items-center justify-center text-on-surface-variant p-10">
           <span className="material-symbols-outlined text-[48px] text-error mb-4">warning</span>
           <h2 className="text-[20px] font-light text-on-surface italic font-serif">Product Not Found</h2>
-          <p className="text-[13px] mt-2">The product you are trying to edit does not exist or has been deleted.</p>
+          <p className="text-[13px] mt-2">
+            The product you are trying to edit does not exist or has been deleted.
+          </p>
           <button
             onClick={() => router.push("/admin/collections")}
             className="mt-6 px-6 py-2.5 bg-primary text-on-primary text-[11px] font-bold tracking-widest uppercase"
@@ -119,20 +168,27 @@ export default function EditProductPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
         >
-          <h2 className="text-[28px] font-light text-on-surface italic font-serif mb-2">Edit Product</h2>
+          <h2 className="text-[28px] font-light text-on-surface italic font-serif mb-2">
+            Edit Product
+          </h2>
           <p className="text-[13px] text-on-surface-variant mb-8">
             Modify the product details below. Changes will immediately update storefront inventory.
           </p>
 
           <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column — Core Details */}
+            {/* ── Left Column ── */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Name + Slug */}
+              {saveError && (
+                <div className="bg-error/10 border border-error/30 text-error text-xs p-4 uppercase tracking-wider">
+                  {saveError}
+                </div>
+              )}
+
+              {/* Product Identity */}
               <div className="bg-surface-container-low border border-outline-variant p-6 space-y-5">
                 <h3 className="text-[11px] font-bold tracking-widest uppercase text-on-surface-variant border-b border-outline-variant pb-3">
                   Product Identity
                 </h3>
-
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold tracking-widest uppercase text-on-surface-variant">
                     Product Name *
@@ -146,13 +202,14 @@ export default function EditProductPage() {
                     className="w-full bg-surface-container border border-outline-variant px-4 py-3 text-[14px] text-on-surface placeholder:text-outline focus:outline-none focus:border-primary transition-colors"
                   />
                 </div>
-
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold tracking-widest uppercase text-on-surface-variant">
                     URL Slug
                   </label>
                   <div className="flex items-center border border-outline-variant bg-surface-container focus-within:border-primary transition-colors">
-                    <span className="pl-4 pr-2 text-[13px] text-on-surface-variant select-none">/product/</span>
+                    <span className="pl-4 pr-2 text-[13px] text-on-surface-variant select-none">
+                      /product/
+                    </span>
                     <input
                       type="text"
                       value={slug}
@@ -161,7 +218,6 @@ export default function EditProductPage() {
                     />
                   </div>
                 </div>
-
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold tracking-widest uppercase text-on-surface-variant">
                     Description
@@ -176,7 +232,7 @@ export default function EditProductPage() {
                 </div>
               </div>
 
-              {/* Pricing + Stock */}
+              {/* Pricing & Inventory */}
               <div className="bg-surface-container-low border border-outline-variant p-6 space-y-5">
                 <h3 className="text-[11px] font-bold tracking-widest uppercase text-on-surface-variant border-b border-outline-variant pb-3">
                   Pricing & Inventory
@@ -217,7 +273,7 @@ export default function EditProductPage() {
                 </div>
               </div>
 
-              {/* Sizes */}
+              {/* Size Variants */}
               <div className="bg-surface-container-low border border-outline-variant p-6 space-y-5">
                 <h3 className="text-[11px] font-bold tracking-widest uppercase text-on-surface-variant border-b border-outline-variant pb-3">
                   Size Variants
@@ -246,9 +302,9 @@ export default function EditProductPage() {
               </div>
             </div>
 
-            {/* Right Column — Media + Status */}
+            {/* ── Right Column ── */}
             <div className="space-y-6">
-              {/* Media Upload */}
+              {/* Media */}
               <div className="bg-surface-container-low border border-outline-variant p-6 space-y-4">
                 <h3 className="text-[11px] font-bold tracking-widest uppercase text-on-surface-variant border-b border-outline-variant pb-3">
                   Media
@@ -285,30 +341,143 @@ export default function EditProductPage() {
                     className="w-full bg-surface-container border border-outline-variant px-4 py-2.5 text-[13px] text-on-surface placeholder:text-outline focus:outline-none focus:border-primary transition-colors"
                   />
                 </div>
+
+                {/* Additional Images */}
+                <div className="space-y-2 pt-2 border-t border-outline-variant/30">
+                  <label className="text-[10px] font-bold tracking-widest uppercase text-on-surface-variant">
+                    Additional Images
+                  </label>
+                  <p className="text-[10px] text-on-surface-variant">
+                    Add more image URLs for the product gallery.
+                  </p>
+                  <div className="space-y-2">
+                    {additionalImages.map((url, i) => (
+                      <div key={i} className="flex gap-2 items-center">
+                        <input
+                          type="url"
+                          value={url}
+                          onChange={(e) => {
+                            const updated = [...additionalImages];
+                            updated[i] = e.target.value;
+                            setAdditionalImages(updated);
+                          }}
+                          placeholder="https://..."
+                          className="flex-1 bg-surface-container border border-outline-variant px-3 py-2 text-[13px] text-on-surface placeholder:text-outline focus:outline-none focus:border-primary transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setAdditionalImages((prev) => prev.filter((_, idx) => idx !== i))}
+                          className="text-on-surface-variant hover:text-error transition-colors"
+                          aria-label="Remove image"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">close</span>
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setAdditionalImages((prev) => [...prev, ""])}
+                      className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase text-primary hover:opacity-70 transition-opacity"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">add</span>
+                      Add Image URL
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              {/* Category + Status */}
+              {/* Organisation */}
               <div className="bg-surface-container-low border border-outline-variant p-6 space-y-5">
                 <h3 className="text-[11px] font-bold tracking-widest uppercase text-on-surface-variant border-b border-outline-variant pb-3">
                   Organisation
                 </h3>
 
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold tracking-widest uppercase text-on-surface-variant">
-                    Category *
-                  </label>
+                {/* Category selector */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold tracking-widests uppercase text-on-surface-variant">
+                      Category *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowNewCategory((v) => !v);
+                        setNewCategoryInput("");
+                        setNewCategoryError("");
+                      }}
+                      className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-primary hover:opacity-70 transition-opacity"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">
+                        {showNewCategory ? "close" : "add"}
+                      </span>
+                      {showNewCategory ? "Cancel" : "New Category"}
+                    </button>
+                  </div>
+
+                  {/* Dropdown */}
                   <select
                     required
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                     className="w-full bg-surface-container border border-outline-variant px-4 py-3 text-[14px] text-on-surface focus:outline-none focus:border-primary transition-colors cursor-pointer"
                   >
-                    {CATEGORIES.map((c) => (
+                    {categories.length === 0 && (
+                      <option value="" disabled>Loading categories...</option>
+                    )}
+                    {categories.map((c) => (
                       <option key={c} value={c} className="bg-surface-container">
                         {c}
                       </option>
                     ))}
                   </select>
+
+                  {/* New category inline form */}
+                  <AnimatePresence>
+                    {showNewCategory && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-2 space-y-2">
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={newCategoryInput}
+                              onChange={(e) => {
+                                setNewCategoryInput(e.target.value);
+                                setNewCategoryError("");
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleAddCategory();
+                                }
+                              }}
+                              placeholder="e.g. Outerwear"
+                              autoFocus
+                              className="flex-1 bg-surface-container border border-primary/50 px-3 py-2.5 text-[13px] text-on-surface placeholder:text-outline focus:outline-none focus:border-primary transition-colors"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleAddCategory}
+                              className="px-4 py-2.5 bg-primary text-on-primary text-[11px] font-bold tracking-widest uppercase hover:opacity-90 transition-opacity whitespace-nowrap"
+                            >
+                              Add
+                            </button>
+                          </div>
+                          {newCategoryError && (
+                            <p className="text-[11px] text-error">{newCategoryError}</p>
+                          )}
+                          <p className="text-[10px] text-on-surface-variant">
+                            Press Enter or click Add. The new category will be selected automatically.
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {/* New Arrivals Toggle */}
@@ -323,14 +492,15 @@ export default function EditProductPage() {
                       }`}
                     >
                       {isNewArrival && (
-                        <span className="material-symbols-outlined text-on-primary text-[12px]">check</span>
+                        <span className="material-symbols-outlined text-on-primary text-[12px]">
+                          check
+                        </span>
                       )}
                     </div>
                     <span className="text-[12px] font-semibold tracking-widest uppercase text-on-surface">
                       Feature in New Arrivals
                     </span>
                   </label>
- 
                   {isNewArrival && (
                     <div className="space-y-1.5 pl-7">
                       <label className="text-[9px] font-bold tracking-widest uppercase text-on-surface-variant">
@@ -347,6 +517,7 @@ export default function EditProductPage() {
                   )}
                 </div>
 
+                {/* Status */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold tracking-widest uppercase text-on-surface-variant">
                     Status *
@@ -363,7 +534,9 @@ export default function EditProductPage() {
                           }`}
                         >
                           {status === s && (
-                            <span className="material-symbols-outlined text-on-primary text-[12px]">check</span>
+                            <span className="material-symbols-outlined text-on-primary text-[12px]">
+                              check
+                            </span>
                           )}
                         </div>
                         <span className="text-[12px] font-semibold tracking-widest uppercase text-on-surface">
@@ -392,7 +565,9 @@ export default function EditProductPage() {
                   </>
                 ) : saving ? (
                   <>
-                    <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+                    <span className="material-symbols-outlined text-[16px] animate-spin">
+                      progress_activity
+                    </span>
                     Saving…
                   </>
                 ) : (

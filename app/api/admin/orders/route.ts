@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
   try {
-    const supabase = createClient();
+    const supabase = createClient(true);
     const { data: orders, error } = await supabase
       .from("orders")
       .select("*")
@@ -13,10 +13,8 @@ export async function GET() {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    // Map database order fields to frontend Order interface
     const formattedOrders = await Promise.all(
       orders.map(async (o) => {
-        // Find user details to represent avatar if available
         const { data: profile } = await supabase
           .from("profiles")
           .select("avatar_url")

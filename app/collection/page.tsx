@@ -1,48 +1,65 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
-import { useAdmin } from "@/context/AdminContext";
-
-const CATEGORIES = ["Outerwear", "Essentials", "Accessories", "Footwear", "Furniture", "Architecture", "Archive"];
+import { Product } from "@/context/AdminContext";
 
 function CollectionContent() {
-  const { products } = useAdmin();
   const searchParams = useSearchParams();
-  const initialCategory = searchParams.get("category") || "outerwear";
+  const initialCategory = searchParams.get("category") || "all";
 
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [category, setCategory] = useState(initialCategory);
   const [sortBy, setSortBy] = useState("default");
   const [sizeOpen, setSizeOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
 
-  // Filter by status (active vs archived)
-  const statusFiltered = products.filter(p => 
-    category === "archive" ? p.status === "Archived" : p.status === "Active"
+  useEffect(() => {
+    fetch("/api/products")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success) {
+          const data: Product[] = json.data;
+          setProducts(data);
+          // Derive unique categories from actual products
+          const unique = Array.from(new Set(data.map((p) => p.category))).sort();
+          setCategories(unique);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  // Archive shows archived products (public API returns Active only, so archive will be empty by default)
+  const statusFiltered = products.filter((p) =>
+    category === "archive" ? p.status === "Archived" : true
   );
 
-  // Sorting logic
+  // Sorting
   const sortedProducts = [...statusFiltered].sort((a, b) => {
     if (sortBy === "price-asc") return a.price - b.price;
     if (sortBy === "price-desc") return b.price - a.price;
     return 0;
   });
 
-  // Category filter logic
+  // Category filter
   const categoryFiltered =
     category === "all" || category === "archive"
       ? sortedProducts
       : sortedProducts.filter((p) => p.category.toLowerCase() === category.toLowerCase());
 
-  // Size filter logic
-  const filteredProducts = selectedSizes.length > 0
-    ? categoryFiltered.filter(p => p.sizes && p.sizes.some(sz => selectedSizes.includes(sz)))
-    : categoryFiltered;
+  // Size filter
+  const filteredProducts =
+    selectedSizes.length > 0
+      ? categoryFiltered.filter(
+          (p) => p.sizes && p.sizes.some((sz) => selectedSizes.includes(sz))
+        )
+      : categoryFiltered;
 
   const toggleSize = (sz: string) => {
     setSelectedSizes((prev) =>
@@ -62,23 +79,32 @@ function CollectionContent() {
                 Categories
               </h3>
               <ul className="space-y-2">
-                {CATEGORIES.map((cat) => {
-                  const isActive = category === cat.toLowerCase();
-                  return (
-                    <li key={cat}>
-                      <button
-                        onClick={() => setCategory(cat.toLowerCase())}
-                        className={`text-sm transition-colors ${
-                          isActive
-                            ? "text-primary font-bold"
-                            : "text-secondary hover:text-primary"
-                        }`}
-                      >
-                        {cat}
-                      </button>
-                    </li>
-                  );
-                })}
+                <li>
+                  <button
+                    onClick={() => setCategory("all")}
+                    className={`text-sm transition-colors ${
+                      category === "all"
+                        ? "text-primary font-bold"
+                        : "text-secondary hover:text-primary"
+                    }`}
+                  >
+                    All
+                  </button>
+                </li>
+                {categories.map((cat) => (
+                  <li key={cat}>
+                    <button
+                      onClick={() => setCategory(cat.toLowerCase())}
+                      className={`text-sm transition-colors ${
+                        category === cat.toLowerCase()
+                          ? "text-primary font-bold"
+                          : "text-secondary hover:text-primary"
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  </li>
+                ))}
               </ul>
             </section>
 
@@ -183,41 +209,47 @@ function CollectionContent() {
 
           {/* Product Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10">
-            {filteredProducts.map((product, index) => (
-              <motion.div
-                key={product.id}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.05 }}
-                className="group cursor-pointer"
-              >
-                <Link href={`/product/${product.slug}`} className="block">
-                  <div className="aspect-[4/5] bg-surface-container overflow-hidden mb-4">
-                    <Image
-                      src={product.image}
-                      alt={product.name}
-                      width={400}
-                      height={500}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                    />
-                  </div>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-sm font-medium text-primary">
-                        {product.name}
-                      </h3>
-                      <p className="text-[10px] uppercase tracking-widest text-secondary mt-1">
-                        {product.colors?.[0]?.name || "Default"}
-                      </p>
+            {filteredProducts.length === 0 ? (
+              <p className="col-span-3 text-secondary text-sm py-16 text-center">
+                No products found in this category.
+              </p>
+            ) : (
+              filteredProducts.map((product, index) => (
+                <motion.div
+                  key={product.id}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: index * 0.05 }}
+                  className="group cursor-pointer"
+                >
+                  <Link href={`/product/${product.slug}`} className="block">
+                    <div className="aspect-[4/5] bg-surface-container overflow-hidden mb-4">
+                      <Image
+                        src={product.image}
+                        alt={product.name}
+                        width={400}
+                        height={500}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        sizes="(max-width: 768px) 100vw, 33vw"
+                      />
                     </div>
-                    <span className="text-sm font-bold text-primary">
-                      ${product.price.toLocaleString()}
-                    </span>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-sm font-medium text-primary">
+                          {product.name}
+                        </h3>
+                        <p className="text-[10px] uppercase tracking-widest text-secondary mt-1">
+                          {product.colors?.[0]?.name || "Default"}
+                        </p>
+                      </div>
+                      <span className="text-sm font-bold text-primary">
+                        ${product.price.toLocaleString()}
+                      </span>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))
+            )}
           </div>
 
           {/* Pagination */}

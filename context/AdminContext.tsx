@@ -57,7 +57,7 @@ interface AdminContextProps {
   orders: Order[];
   cmsData: CmsData;
   feedbackItems: FeedbackItem[];
-  addProduct: (product: Omit<Product, "id" | "sku">) => void;
+  addProduct: (product: Omit<Product, "id" | "sku">) => Promise<{ success: boolean; error?: string }>;
   updateProduct: (id: string, updatedProduct: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
   updateCmsData: (data: Partial<CmsData>) => void;
@@ -83,21 +83,25 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [prodRes, orderRes, cmsRes, feedbackRes] = await Promise.all([
-          fetch('/api/admin/products'),
-          fetch('/api/admin/orders'),
-          fetch('/api/admin/cms'),
-          fetch('/api/admin/feedback'),
+        const [prodRes, orderRes, cmsRes, feedbackRes] = await Promise.allSettled([
+          fetch('/api/admin/products').then(r => r.json()),
+          fetch('/api/admin/orders').then(r => r.json()),
+          fetch('/api/admin/cms').then(r => r.json()),
+          fetch('/api/admin/feedback').then(r => r.json()),
         ]);
-        const prodJson = await prodRes.json();
-        const orderJson = await orderRes.json();
-        const cmsJson = await cmsRes.json();
-        const feedbackJson = await feedbackRes.json();
 
-        if (prodJson.success) setProducts(prodJson.data);
-        if (orderJson.success) setOrders(orderJson.data);
-        if (cmsJson.success) setCmsData(cmsJson.data);
-        if (feedbackJson.success) setFeedbackItems(feedbackJson.data);
+        if (prodRes.status === 'fulfilled' && prodRes.value.success) setProducts(prodRes.value.data);
+        else console.error('[ADMIN CTX] products failed:', prodRes);
+
+        if (orderRes.status === 'fulfilled' && orderRes.value.success) setOrders(orderRes.value.data);
+        else console.error('[ADMIN CTX] orders failed:', orderRes);
+
+        if (cmsRes.status === 'fulfilled' && cmsRes.value.success) setCmsData(cmsRes.value.data);
+        else console.error('[ADMIN CTX] cms failed:', cmsRes);
+
+        if (feedbackRes.status === 'fulfilled' && feedbackRes.value.success) setFeedbackItems(feedbackRes.value.data);
+        else console.error('[ADMIN CTX] feedback failed:', feedbackRes);
+
       } catch (err) {
         console.error('Failed to load admin data', err);
       }
@@ -113,14 +117,16 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         body: JSON.stringify(newProd),
       });
       const json = await response.json();
-      console.log("[ADDPRODUCT DEBUG] response:", JSON.stringify(json));
       if (json.success) {
         setProducts((prev) => [json.data, ...prev]);
+        return { success: true };
       } else {
         console.error('Failed to add product', json.error);
+        return { success: false, error: json.error };
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Add product error', err);
+      return { success: false, error: err.message };
     }
   };
 

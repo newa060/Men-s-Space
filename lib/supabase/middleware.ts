@@ -30,5 +30,17 @@ export async function updateSession(request: NextRequest) {
   // Refresh session if expired
   const { data: { user } } = await supabase.auth.getUser();
 
-  return { supabaseResponse, user, supabase };
+  // Service role client for profile lookups — bypasses RLS entirely
+  const adminSupabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      cookies: {
+        getAll() { return []; },
+        setAll() {},
+      },
+    }
+  );
+
+  return { supabaseResponse, user, supabase: adminSupabase };
 }

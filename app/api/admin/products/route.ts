@@ -63,8 +63,6 @@ export async function POST(request: Request) {
     const randomNum = Math.floor(100 + Math.random() * 900);
     const sku = product.sku || `SKU-${categoryPrefix}-${randomNum}`;
 
-    console.log("[PRODUCT DEBUG] inserting product:", product.name, "slug:", product.slug);
-
     const { data: newProd, error } = await supabase
       .from("products")
       .insert({
@@ -92,11 +90,8 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      console.log("[PRODUCT DEBUG] insert error:", JSON.stringify(error));
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
-
-    console.log("[PRODUCT DEBUG] inserted successfully, id:", newProd?.id);
 
     const formattedProduct = {
       id: newProd.id,

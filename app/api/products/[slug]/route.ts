@@ -6,7 +6,7 @@ export async function GET(
   { params }: { params: { slug: string } }
 ) {
   try {
-    const supabase = createClient();
+    const supabase = createClient(true);
     const { data: product, error } = await supabase
       .from("products")
       .select("*")

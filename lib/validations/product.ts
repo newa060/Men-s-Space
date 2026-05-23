@@ -8,8 +8,8 @@ export const ProductSchema = z.object({
   stock: z.number().int().nonnegative("Stock must be zero or more"),
   category: z.string().min(2, "Category must be at least 2 characters"),
   status: z.enum(["Active", "Draft", "Archived"]).default("Active"),
-  image: z.string().url("Image must be a valid URL"),
-  description: z.string().min(10, "Description must be at least 10 characters"),
+  image: z.string().url("Image must be a valid URL").or(z.literal("")).optional(),
+  description: z.string().optional().default(""),
   sizes: z.array(z.string()).nonempty("At least one size is required"),
   images: z.array(z.string()).optional(),
   colors: z.array(
