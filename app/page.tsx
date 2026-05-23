@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -7,9 +7,11 @@ import { motion } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
 import { useAdmin } from "@/context/AdminContext";
 import type { GalleryItem } from "@/lib/gallery/format";
+import { TestimonialsColumn } from "@/components/ui/testimonials-columns";
+import type { TestimonialItem } from "@/components/ui/testimonials-columns";
 
 export default function Home() {
-  const { cmsData, feedbackItems } = useAdmin();
+  const { cmsData } = useAdmin();
   const sliderRef = useRef<HTMLDivElement>(null);
   const scrollAnimationRef = useRef<any>(null);
   const autoplayTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -125,32 +127,70 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gallerySlides.length]);
 
-  const categories = [
-    {
-      title: "Outerwear",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBNTiPV-94sOcCV_ZNissk31ncdN23HhehqmCWT8-FQ9ITtuZ3kdB0pD9N0PXXGVaEX_EIzmeyjUC5exi5h2aw3rE-HfiHFKIzp71GbIWjsnAVXBixywaMgWLfxZiQim5ROHDjmCy-Qs5DOHUrz8AmFXqE-x4kqrP6Nr62IWNxEx8tf1luJjCKnvwft0BTid4PD2r7PGqjkHcbpbq03O7lMrnTthhPpi0VVHRpY6EF1yd_jZ-pZg5fnu6SKMgNKHUt47F6n_D0x3fqZ",
-      href: "/collection?category=outerwear",
-    },
-    {
-      title: "Essentials",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBe-urTEgU8HFiuU0ltKxyrWf9d9frl5rnmCLRUZ8Os0ZnnlFLqKLjC7A_axSSggPJxFspGPfAA2vN9BqhkgSEIBO-STI0_XTqtWfe2Lk8Hg4hTo_V_yyUGywUu8CGn05_KCLVFwka3VQZvtxOUBseW3eeyHPQQJ-2EJ8b1UoeJN54lNT62DFjT6ImY9O0RDMyapKzNZ0KfBKSnTqDIr3cmBB1A5-BRuk0QoliF-rNk5nk1YoECMvdtf21AbfJ11DdqWX3hC_gg91Rd",
-      href: "/collection?category=essentials",
-    },
-    {
-      title: "Accessories",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBP1Czxk8SBKNJnynu5FMitMWwj7ftDzxlNMvQH4zFa1dBS7ilq-SFtRP0upepE6tTAk7LCL0vxPh7xxau8EbSaSAXx4sRe1GSL5a2POJzZHbml3-HlDlmI3ZVA8E7q4c6LvZTXkuV4snTWHscaMxJX8szK4itrrUIpsGjY1NkgpW5RB0TaEKWY_cohQZ-zrxUt2avgmbQIjTBNJGcj5Sltpg8dJ7pP8Ygmr2MDnBMEvZUL74WvAaE6to7FKJT7p7c4XdUb5b2umVMS",
-      href: "/collection?category=accessories",
-    },
+  // Dynamic categories derived from active products
+  const [categories, setCategories] = useState<{ title: string; image: string; href: string }[]>([]);
+
+  useEffect(() => {
+    fetch("/api/products")
+      .then((r) => r.json())
+      .then((json) => {
+        if (!json.success || !json.data?.length) return;
+
+        // Group products by category, preserving insertion order (already sorted by created_at desc)
+        const seen = new Map<string, string>();
+        for (const product of json.data as { category: string; image: string }[]) {
+          if (product.category && product.image && !seen.has(product.category)) {
+            seen.set(product.category, product.image);
+          }
+        }
+
+        const derived = Array.from(seen.entries()).map(([title, image]) => ({
+          title,
+          image,
+          href: `/collection?category=${encodeURIComponent(title.toLowerCase())}`,
+        }));
+
+        setCategories(derived);
+      })
+      .catch(console.error);
+  }, []);
+
+  // Fetch approved feedback dynamically from the public API
+  const [testimonials, setTestimonials] = useState<TestimonialItem[]>([]);
+
+  useEffect(() => {
+    fetch("/api/feedback")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success && json.data?.length >= 1) {
+          setTestimonials(
+            json.data.map((f: { text: string; author: string; location: string }) => ({
+              text: f.text,
+              name: f.author,
+              role: `Verified Purchase — ${f.location}`,
+            }))
+          );
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  const fallbackTestimonials: TestimonialItem[] = [
+    { text: "The silhouette of the trench coat is unmatched. Pure architectural bliss.", name: "Anonymous", role: "Verified Purchase — London" },
+    { text: "Obsessed with the monochromatic palette. Getting ready every morning is an exercise in effortless luxury.", name: "Anonymous", role: "Verified Purchase — Tokyo" },
+    { text: "Every piece feels considered. The weight of the fabric, the cut — nothing is accidental.", name: "Anonymous", role: "Verified Purchase — Paris" },
+    { text: "I have never worn anything that draws this many compliments while saying so little.", name: "Anonymous", role: "Verified Purchase — New York" },
+    { text: "Minimalism done right. These are not just clothes, they are a philosophy.", name: "Anonymous", role: "Verified Purchase — Berlin" },
+    { text: "The quality justifies every penny. Pieces that look better with age.", name: "Anonymous", role: "Verified Purchase — Milan" },
+    { text: "Wearing this brand changed how I think about getting dressed in the morning.", name: "Anonymous", role: "Verified Purchase — Seoul" },
+    { text: "The outerwear collection is extraordinary. Structured, warm, and completely timeless.", name: "Anonymous", role: "Verified Purchase — Copenhagen" },
+    { text: "I bought one piece and came back for three more within a month. That says everything.", name: "Anonymous", role: "Verified Purchase — Amsterdam" },
   ];
 
-  // Dynamic feedback rendering
-  const approvedFeedback = feedbackItems.filter((f) => f.approved);
-  const featuredFeedback = approvedFeedback[0] || {
-    text: "Aesthete represents more than apparel. It’s a deliberate study of form, function, and the silence of exceptional design.",
-    author: "Elena Vorski",
-    location: "Architectural Critic",
-  };
-  const secondaryFeedback = approvedFeedback.slice(1);
+  const activeTestimonials = testimonials.length > 0 ? testimonials : fallbackTestimonials;
+  const col1 = activeTestimonials.slice(0, Math.ceil(activeTestimonials.length / 3));
+  const col2 = activeTestimonials.slice(Math.ceil(activeTestimonials.length / 3), Math.ceil((activeTestimonials.length * 2) / 3));
+  const col3 = activeTestimonials.slice(Math.ceil((activeTestimonials.length * 2) / 3));
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -206,32 +246,43 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {categories.map((cat, idx) => (
-            <motion.div
-              key={cat.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.5, delay: idx * 0.1 }}
-              className="group cursor-pointer"
-            >
-              <Link href={cat.href}>
-                <div className="aspect-[4/5] bg-surface-container relative overflow-hidden mb-4">
-                  <Image
-                    src={cat.image}
-                    alt={cat.title}
-                    fill
-                    className="object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out"
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                  />
+          {categories.length === 0
+            ? // Skeleton placeholders while loading
+              Array.from({ length: 3 }).map((_, idx) => (
+                <div key={idx} className="animate-pulse">
+                  <div className="aspect-[4/5] bg-surface-container mb-4" />
+                  <div className="flex justify-between items-center px-1">
+                    <div className="h-3 w-24 bg-surface-container rounded" />
+                    <div className="h-4 w-4 bg-surface-container rounded" />
+                  </div>
                 </div>
-                <div className="flex justify-between items-center px-1">
-                  <span className="text-label-caps text-primary tracking-widest uppercase">{cat.title}</span>
-                  <ArrowUpRight size={16} className="text-secondary group-hover:text-primary transition-colors" />
-                </div>
-              </Link>
-            </motion.div>
-          ))}
+              ))
+            : categories.map((cat, idx) => (
+                <motion.div
+                  key={cat.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-100px" }}
+                  transition={{ duration: 0.5, delay: idx * 0.1 }}
+                  className="group cursor-pointer"
+                >
+                  <Link href={cat.href}>
+                    <div className="aspect-[4/5] bg-surface-container relative overflow-hidden mb-4">
+                      <Image
+                        src={cat.image}
+                        alt={cat.title}
+                        fill
+                        className="object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out"
+                        sizes="(max-width: 768px) 100vw, 33vw"
+                      />
+                    </div>
+                    <div className="flex justify-between items-center px-1">
+                      <span className="text-label-caps text-primary tracking-widest uppercase">{cat.title}</span>
+                      <ArrowUpRight size={16} className="text-secondary group-hover:text-primary transition-colors" />
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
         </div>
       </section>
 
@@ -319,51 +370,33 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ─── Feedback / Testimonials ─────────────────────────────── */}
-      <section className="py-24 px-5 md:px-16 max-w-screen-xl mx-auto w-full">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-16 md:gap-24 items-center">
-          <div className="space-y-6">
-            <span className="text-label-caps text-secondary uppercase tracking-widest">Our Community</span>
-            <blockquote className="text-3xl md:text-4xl font-light italic leading-tight text-primary">
-              &ldquo;{featuredFeedback.text}&rdquo;
-            </blockquote>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-[1px] bg-primary"></div>
-              <span className="text-sm font-semibold tracking-wide text-primary">
-                {featuredFeedback.author}, {featuredFeedback.location}
-              </span>
-            </div>
-          </div>
 
-          <div className="space-y-8 border-l border-outline-variant pl-0 md:pl-12">
-            {secondaryFeedback.length > 0 ? (
-              secondaryFeedback.map((f) => (
-                <div key={f.id} className="pb-6 border-b border-outline-variant/50">
-                  <p className="text-base text-on-surface-variant mb-2">
-                    &ldquo;{f.text}&rdquo;
-                  </p>
-                  <p className="text-label-caps text-secondary">
-                    Verified Purchase — {f.location}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <>
-                <div className="pb-6 border-b border-outline-variant/50">
-                  <p className="text-base text-on-surface-variant mb-2">
-                    &ldquo;The silhouette of the trench coat is unmatched. Pure architectural bliss.&rdquo;
-                  </p>
-                  <p className="text-label-caps text-secondary">Verified Purchase — London</p>
-                </div>
-                <div className="pb-6 border-b border-outline-variant/50">
-                  <p className="text-base text-on-surface-variant mb-2">
-                    &ldquo;Obsessed with the monochromatic palette. It makes getting ready every morning an exercise in effortless luxury.&rdquo;
-                  </p>
-                  <p className="text-label-caps text-secondary">Verified Purchase — Tokyo</p>
-                </div>
-              </>
-            )}
+      {/* --- Testimonials ------------------------------------------------- */}
+      <section className="py-24 px-5 md:px-16 max-w-screen-xl mx-auto w-full overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+          viewport={{ once: true }}
+          className="flex flex-col items-center justify-center max-w-[540px] mx-auto mb-12"
+        >
+          <div className="flex justify-center mb-4">
+            <span className="text-label-caps text-secondary uppercase tracking-widest border border-outline-variant px-4 py-1">
+              Our Community
+            </span>
           </div>
+          <h2 className="text-3xl md:text-4xl font-light uppercase tracking-tight text-center">
+            What Our Clients Say
+          </h2>
+          <p className="text-center mt-4 text-on-surface-variant font-light text-sm">
+            Worn and trusted by those who value craft over noise.
+          </p>
+        </motion.div>
+
+        <div className="flex justify-center gap-6 [mask-image:linear-gradient(to_bottom,transparent,black_20%,black_80%,transparent)] max-h-[740px] overflow-hidden">
+          <TestimonialsColumn testimonials={col1} duration={15} />
+          <TestimonialsColumn testimonials={col2} className="hidden md:block" duration={19} />
+          <TestimonialsColumn testimonials={col3} className="hidden lg:block" duration={17} />
         </div>
       </section>
     </div>
