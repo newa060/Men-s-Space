@@ -5,6 +5,11 @@ import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import TopNavBar from "@/components/layout/TopNavBar";
+import {
+  ProductColorsEditor,
+  normalizeProductColors,
+  type ProductColor,
+} from "@/components/admin/ProductColorsEditor";
 import { useAdmin } from "@/context/AdminContext";
 
 const SIZES = ["XS", "S", "M", "L", "XL", "XXL", "OS"];
@@ -36,6 +41,7 @@ export default function EditProductPage() {
   }, []);
   const [status, setStatus] = useState<"Active" | "Draft" | "Archived">("Draft");
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
+  const [colors, setColors] = useState<ProductColor[]>([]);
   const [imageUrl, setImageUrl] = useState("");
   const [additionalImages, setAdditionalImages] = useState<string[]>([]);
   const [isNewArrival, setIsNewArrival] = useState(false);
@@ -67,6 +73,7 @@ export default function EditProductPage() {
       );
       setIsNewArrival(!!product.isNewArrival);
       setSeries(product.series || "");
+      setColors(product.colors || []);
 
       // If the product's category isn't already in the list, add it
       setCategories((prev) =>
@@ -118,6 +125,7 @@ export default function EditProductPage() {
       images: [imageUrl, ...additionalImages.filter(Boolean)],
       isNewArrival,
       series,
+      colors: normalizeProductColors(colors),
     });
 
     setSaving(false);
@@ -272,6 +280,8 @@ export default function EditProductPage() {
                   </div>
                 </div>
               </div>
+
+              <ProductColorsEditor colors={colors} onChange={setColors} />
 
               {/* Size Variants */}
               <div className="bg-surface-container-low border border-outline-variant p-6 space-y-5">

@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import TopNavBar from "@/components/layout/TopNavBar";
+import {
+  ProductColorsEditor,
+  normalizeProductColors,
+  type ProductColor,
+} from "@/components/admin/ProductColorsEditor";
 import { useAdmin } from "@/context/AdminContext";
 
 const SIZES = ["XS", "S", "M", "L", "XL", "XXL", "OS"];
@@ -31,6 +36,7 @@ export default function NewProductPage() {
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState<"Active" | "Draft" | "Archived">("Draft");
   const [selectedSizes, setSelectedSizes] = useState<string[]>(["M", "L"]);
+  const [colors, setColors] = useState<ProductColor[]>([]);
   const [imageUrl, setImageUrl] = useState("");
   const [additionalImages, setAdditionalImages] = useState<string[]>([]);
   const [isNewArrival, setIsNewArrival] = useState(false);
@@ -106,6 +112,7 @@ export default function NewProductPage() {
       series,
       image: imageUrl || fallbackImage,
       images: additionalImages.filter(Boolean),
+      colors: normalizeProductColors(colors),
     });
 
     setSaving(false);
@@ -245,6 +252,8 @@ export default function NewProductPage() {
                   </div>
                 </div>
               </div>
+
+              <ProductColorsEditor colors={colors} onChange={setColors} />
 
               {/* Size Variants */}
               <div className="bg-surface-container-low border border-outline-variant p-6 space-y-5">

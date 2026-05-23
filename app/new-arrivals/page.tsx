@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, ArrowUpRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAdmin } from "@/context/AdminContext";
+import { ProductCardImage } from "@/components/ui/ProductCardImage";
 
 const ARCHIVE_SLIDES = [
   "https://lh3.googleusercontent.com/aida-public/AB6AXuDKY5VkcHZAdan2pUTOU_GC3FbEBM3vMRcOXjhprRMHnGiJmQKkBCkuT7KuAdKstLUaARMHt0O2wkLVwBRdn-tnbqlcH92jgL3bcFf2HGtG4kRWDgm20QkfYbDMMfJOko7Jv6bdvgd9oh4-pyVAvRUTnBhk0b4FGd77AQ_u_1IwcFtAIFU-AQWQ4EV0o48WJ-UPdKqgkIq84Ue1m2NbNEp8WpJHCKFkSP91-JsQvE3xFjxTSUK8AfHSB-YMGxq69wR4mNNc1qX-6sn-",
@@ -120,14 +121,12 @@ export default function NewArrivals() {
                 >
                   <Link href={`/product/${product.slug}`}>
                     <div className="aspect-[4/5] overflow-hidden bg-surface-container mb-4 relative">
-                      <Image
-                        src={product.image}
+                      <ProductCardImage
+                        image={product.image}
+                        images={product.images}
                         alt={product.name}
-                        fill
-                        className="object-cover group-hover:scale-[1.04] transition-all duration-700"
                         sizes="(max-width: 768px) 100vw, 25vw"
                       />
-                      <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     </div>
                     <div className="flex justify-between items-start">
                       <div>

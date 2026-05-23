@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import { ProductCardImage } from "@/components/ui/ProductCardImage";
 import { useSearchParams } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
@@ -224,12 +224,10 @@ function CollectionContent() {
                 >
                   <Link href={`/product/${product.slug}`} className="block">
                     <div className="aspect-[4/5] bg-surface-container overflow-hidden mb-4">
-                      <Image
-                        src={product.image}
+                      <ProductCardImage
+                        image={product.image}
+                        images={product.images}
                         alt={product.name}
-                        width={400}
-                        height={500}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                         sizes="(max-width: 768px) 100vw, 33vw"
                       />
                     </div>

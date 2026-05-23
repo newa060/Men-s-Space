@@ -7,6 +7,7 @@ import { useCart } from "@/context/CartContext";
 import { Shield, Truck } from "lucide-react";
 import { motion } from "framer-motion";
 import { Product } from "@/context/AdminContext";
+import { resolveColorHex } from "@/components/admin/productColorUtils";
 
 export default function ProductPage() {
   const { slug } = useParams() as { slug: string };
@@ -193,7 +194,7 @@ export default function ProductPage() {
                     >
                       <div
                         className="w-full h-full rounded-full border border-black/10"
-                        style={{ backgroundColor: col.hex }}
+                        style={{ backgroundColor: resolveColorHex(col.hex, col.name) }}
                       />
                     </div>
                     <span className="text-[10px] text-secondary group-hover:text-primary transition-colors tracking-wide uppercase">
