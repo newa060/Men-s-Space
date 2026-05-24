@@ -93,31 +93,47 @@ export default function ProductPage() {
             </div>
           )}
 
-          <div className="space-y-4 pt-6 border-t border-outline-variant/60">
-            <h3 className="text-label-caps text-primary tracking-widest">Technical Specifications</h3>
-            <ul className="text-xs text-secondary space-y-2.5">
-              <li className="flex justify-between">
-                <span>Material</span>
-                <span className="text-primary font-medium">{product.materials || "—"}</span>
-              </li>
-              <li className="flex justify-between">
-                <span>Waterproof</span>
-                <span className="text-primary font-medium">{product.waterproof || "—"}</span>
-              </li>
-              <li className="flex justify-between">
-                <span>Breathability</span>
-                <span className="text-primary font-medium">{product.breathability || "—"}</span>
-              </li>
-              <li className="flex justify-between">
-                <span>Hardware</span>
-                <span className="text-primary font-medium">{product.hardware || "—"}</span>
-              </li>
-              <li className="flex justify-between">
-                <span>Seams</span>
-                <span className="text-primary font-medium">{product.seams || "—"}</span>
-              </li>
-            </ul>
-          </div>
+          {(() => {
+            const hasSpecs = product.materials || product.waterproof || product.breathability || product.hardware || product.seams;
+            if (!hasSpecs) return null;
+            return (
+              <div className="space-y-4 pt-6 border-t border-outline-variant/60">
+                <h3 className="text-label-caps text-primary tracking-widest">Technical Specifications</h3>
+                <ul className="text-xs text-secondary space-y-2.5">
+                  {product.materials && (
+                    <li className="flex justify-between">
+                      <span>Material</span>
+                      <span className="text-primary font-medium">{product.materials}</span>
+                    </li>
+                  )}
+                  {product.waterproof && (
+                    <li className="flex justify-between">
+                      <span>Waterproof</span>
+                      <span className="text-primary font-medium">{product.waterproof}</span>
+                    </li>
+                  )}
+                  {product.breathability && (
+                    <li className="flex justify-between">
+                      <span>Breathability</span>
+                      <span className="text-primary font-medium">{product.breathability}</span>
+                    </li>
+                  )}
+                  {product.hardware && (
+                    <li className="flex justify-between">
+                      <span>Hardware</span>
+                      <span className="text-primary font-medium">{product.hardware}</span>
+                    </li>
+                  )}
+                  {product.seams && (
+                    <li className="flex justify-between">
+                      <span>Seams</span>
+                      <span className="text-primary font-medium">{product.seams}</span>
+                    </li>
+                  )}
+                </ul>
+              </div>
+            );
+          })()}
         </section>
 
         {/* ── Center: Gallery ── */}
@@ -204,13 +220,13 @@ export default function ProductPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.8 }}
-                className="aspect-[4/5] bg-surface-container relative overflow-hidden group border border-outline-variant/20"
+                className="aspect-[4/5] bg-surface-container relative overflow-hidden border border-outline-variant/20"
               >
                 <Image
                   src={src}
                   alt={`${product.name} view ${index + 1}`}
                   fill
-                  className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700 ease-out"
+                  className="object-cover transition-all duration-700 ease-out"
                   sizes="50vw"
                   priority={index === 0}
                 />
