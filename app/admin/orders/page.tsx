@@ -14,15 +14,77 @@ const badgeStyles: Record<Order["status"], string> = {
   CANCELLED: "bg-error/15 text-error border-error/20",
 };
 
+const ALL_STATUSES = ["PENDING", "PROCESSING", "SHIPPED", "COMPLETED", "CANCELLED"] as const;
+
 export default function OrdersPage() {
   const { orders, updateOrderStatus } = useAdmin();
   const [activeTab, setActiveTab] = useState<"ALL" | Order["status"]>("ALL");
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
+  // Batch selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchModalOpen, setBatchModalOpen] = useState(false);
+  const [batchStatus, setBatchStatus] = useState<Order["status"]>("PROCESSING");
+  const [batchLoading, setBatchLoading] = useState(false);
+
   const filteredOrders = orders.filter((o) => {
     if (activeTab === "ALL") return true;
     return o.status === activeTab;
   });
+
+  // ── Export CSV ──────────────────────────────────────────────
+  const handleExportCSV = () => {
+    const rows = [
+      ["Order ID", "Customer Name", "Date", "Items Count", "Total ($)", "Status"],
+      ...filteredOrders.map((o) => [
+        o.id,
+        o.customerName,
+        o.date,
+        o.itemsCount,
+        o.totalPrice.toFixed(2),
+        o.status,
+      ]),
+    ];
+
+    const csv = rows
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `orders-${activeTab.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // ── Batch selection helpers ──────────────────────────────────
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredOrders.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredOrders.map((o) => o.id)));
+    }
+  };
+
+  // ── Process Batch ────────────────────────────────────────────
+  const handleProcessBatch = async () => {
+    if (selectedIds.size === 0) return;
+    setBatchLoading(true);
+    await Promise.all([...selectedIds].map((id) => updateOrderStatus(id, batchStatus)));
+    setBatchLoading(false);
+    setSelectedIds(new Set());
+    setBatchModalOpen(false);
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -53,11 +115,28 @@ export default function OrdersPage() {
             </p>
           </div>
           <div className="flex gap-4">
-            <button className="px-6 py-2 border border-outline text-[11px] font-bold tracking-widest uppercase text-on-surface hover:bg-surface-container-high transition-all">
+            <button
+              onClick={handleExportCSV}
+              className="px-6 py-2 border border-outline text-[11px] font-bold tracking-widest uppercase text-on-surface hover:bg-surface-container-high transition-all"
+            >
               Export CSV
             </button>
-            <button className="px-6 py-2 bg-primary-container text-on-primary-fixed text-[11px] font-bold tracking-widest uppercase hover:opacity-90 transition-all">
+            <button
+              onClick={() => {
+                if (selectedIds.size === 0) {
+                  // Select all visible orders first, then open modal
+                  setSelectedIds(new Set(filteredOrders.map((o) => o.id)));
+                }
+                setBatchModalOpen(true);
+              }}
+              className="px-6 py-2 bg-primary-container text-on-primary-fixed text-[11px] font-bold tracking-widest uppercase hover:opacity-90 transition-all"
+            >
               Process Batch
+              {selectedIds.size > 0 && (
+                <span className="ml-2 bg-primary text-on-primary rounded-full px-1.5 py-0.5 text-[9px]">
+                  {selectedIds.size}
+                </span>
+              )}
             </button>
           </div>
         </motion.section>
@@ -69,7 +148,7 @@ export default function OrdersPage() {
               {(["ALL", "PENDING", "PROCESSING", "SHIPPED", "COMPLETED", "CANCELLED"] as const).map((tab) => (
                 <button
                   key={tab}
-                  onClick={() => setActiveTab(tab)}
+                  onClick={() => { setActiveTab(tab); setSelectedIds(new Set()); }}
                   className={`text-[11px] font-bold tracking-widest uppercase pb-2 transition-colors relative ${
                     activeTab === tab
                       ? "text-primary border-b-2 border-primary"
@@ -93,6 +172,25 @@ export default function OrdersPage() {
           </div>
         </div>
 
+        {/* Batch selection bar */}
+        {selectedIds.size > 0 && (
+          <div className="flex items-center gap-4 px-4 py-3 bg-primary/10 border border-primary/20 text-[12px] text-primary font-semibold tracking-wide">
+            <span>{selectedIds.size} order{selectedIds.size > 1 ? "s" : ""} selected</span>
+            <button
+              onClick={() => setBatchModalOpen(true)}
+              className="px-4 py-1 bg-primary text-on-primary text-[10px] font-bold tracking-widest uppercase hover:opacity-90 transition-all"
+            >
+              Apply Status
+            </button>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="ml-auto text-on-surface-variant hover:text-error transition-colors text-[11px] tracking-widest uppercase"
+            >
+              Clear Selection
+            </button>
+          </div>
+        )}
+
         {/* Table */}
         <motion.section
           initial={{ opacity: 0 }}
@@ -104,6 +202,15 @@ export default function OrdersPage() {
             <table className="w-full text-left border-collapse">
               <thead className="bg-surface-container-low border-b border-outline-variant">
                 <tr>
+                  {/* Checkbox column */}
+                  <th className="px-4 py-4 w-10">
+                    <input
+                      type="checkbox"
+                      checked={filteredOrders.length > 0 && selectedIds.size === filteredOrders.length}
+                      onChange={toggleSelectAll}
+                      className="accent-primary cursor-pointer w-4 h-4"
+                    />
+                  </th>
                   {["Order ID", "Customer Name", "Date", "Items Count", "Total", "Status", "Actions"].map((h, i) => (
                     <th
                       key={h}
@@ -119,7 +226,7 @@ export default function OrdersPage() {
               <tbody className="divide-y divide-outline-variant/30">
                 {filteredOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-16 text-center text-on-surface-variant text-[13px]">
+                    <td colSpan={8} className="px-6 py-16 text-center text-on-surface-variant text-[13px]">
                       No orders found under this status.
                     </td>
                   </tr>
@@ -127,8 +234,18 @@ export default function OrdersPage() {
                   filteredOrders.map((order) => (
                     <tr
                       key={order.id}
-                      className="hover:bg-primary/5 transition-colors group"
+                      className={`hover:bg-primary/5 transition-colors group ${
+                        selectedIds.has(order.id) ? "bg-primary/5" : ""
+                      }`}
                     >
+                      <td className="px-4 py-5">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(order.id)}
+                          onChange={() => toggleSelect(order.id)}
+                          className="accent-primary cursor-pointer w-4 h-4"
+                        />
+                      </td>
                       <td className="px-6 py-5 text-[13px] font-semibold text-primary">{order.id}</td>
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-3">
@@ -171,7 +288,7 @@ export default function OrdersPage() {
                             <div className="px-3 py-1.5 text-[9px] font-bold text-on-surface-variant border-b border-outline-variant/30 uppercase tracking-widest">
                               Update Status
                             </div>
-                            {(["PENDING", "PROCESSING", "SHIPPED", "COMPLETED", "CANCELLED"] as const).map((s) => (
+                            {ALL_STATUSES.map((s) => (
                               <button
                                 key={s}
                                 onClick={() => {
@@ -212,6 +329,63 @@ export default function OrdersPage() {
           </div>
         </motion.section>
       </div>
+
+      {/* ── Batch Modal ─────────────────────────────────────────── */}
+      {batchModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
+            className="bg-surface-container-high border border-outline-variant w-full max-w-sm p-8 shadow-2xl"
+          >
+            <h3 className="text-[16px] font-light text-on-surface italic font-serif mb-1">
+              Process Batch
+            </h3>
+            <p className="text-[12px] text-on-surface-variant mb-6">
+              Apply a new status to{" "}
+              <span className="text-primary font-semibold">{selectedIds.size}</span> selected order
+              {selectedIds.size > 1 ? "s" : ""}.
+            </p>
+
+            <label className="text-[10px] font-bold tracking-widest uppercase text-on-surface-variant block mb-2">
+              New Status
+            </label>
+            <div className="grid grid-cols-1 gap-2 mb-8">
+              {ALL_STATUSES.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setBatchStatus(s)}
+                  className={`px-4 py-2.5 text-left text-[11px] font-bold tracking-widest uppercase border transition-all ${
+                    batchStatus === s
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-outline-variant text-on-surface-variant hover:border-outline hover:text-on-surface"
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setBatchModalOpen(false)}
+                disabled={batchLoading}
+                className="flex-1 py-2.5 border border-outline-variant text-[11px] font-bold tracking-widest uppercase text-on-surface-variant hover:bg-surface-container-highest transition-all disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleProcessBatch}
+                disabled={batchLoading}
+                className="flex-1 py-2.5 bg-primary-container text-on-primary-fixed text-[11px] font-bold tracking-widest uppercase hover:opacity-90 transition-all disabled:opacity-50"
+              >
+                {batchLoading ? "Updating..." : "Apply"}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
