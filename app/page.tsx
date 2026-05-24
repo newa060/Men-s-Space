@@ -467,7 +467,7 @@ export default function Home() {
       {/* ─── Social Gallery Slider ────────────────────────────────── */}
       <section className="bg-surface-container py-24 overflow-hidden w-full">
         {/* Header */}
-        <div className="px-5 md:px-16 max-w-screen-xl mx-auto mb-10 flex items-center gap-4">
+        <div className="px-4 md:px-6 mb-10 flex items-center gap-4">
           <span className="text-label-caps text-secondary uppercase tracking-widest">Instagram</span>
           {cmsData.storeInstagram ? (
             <a
