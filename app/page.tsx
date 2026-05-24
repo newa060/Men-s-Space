@@ -11,11 +11,29 @@ import { TestimonialsColumn } from "@/components/ui/testimonials-columns";
 import type { TestimonialItem } from "@/components/ui/testimonials-columns";
 
 export default function Home() {
-  const { cmsData } = useAdmin();
-  // Gallery hover state for pausing the CSS animation
+  const { cmsData: adminCmsData } = useAdmin();
+  
+  // All state declarations first
+  const [cmsData, setCmsData] = useState<typeof adminCmsData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isGalleryHovered, setIsGalleryHovered] = useState(false);
-
   const [gallerySlides, setGallerySlides] = useState<GalleryItem[]>([]);
+  const [categories, setCategories] = useState<{ title: string; image: string; href: string }[]>([]);
+  const [testimonials, setTestimonials] = useState<TestimonialItem[]>([]);
+
+  // All effects together
+  // Fetch fresh CMS data from the public endpoint on mount
+  useEffect(() => {
+    setIsLoading(true);
+    fetch("/api/cms")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success && json.data) setCmsData(json.data);
+        else setCmsData(adminCmsData);
+      })
+      .catch(() => setCmsData(adminCmsData))
+      .finally(() => setIsLoading(false));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetch("/api/gallery")
@@ -28,10 +46,7 @@ export default function Home() {
       .catch(console.error);
   }, []);
 
-
   // Dynamic categories derived from active products
-  const [categories, setCategories] = useState<{ title: string; image: string; href: string }[]>([]);
-
   useEffect(() => {
     fetch("/api/products")
       .then((r) => r.json())
@@ -58,8 +73,6 @@ export default function Home() {
   }, []);
 
   // Fetch approved feedback dynamically from the public API
-  const [testimonials, setTestimonials] = useState<TestimonialItem[]>([]);
-
   useEffect(() => {
     fetch("/api/feedback")
       .then((r) => r.json())
@@ -77,6 +90,7 @@ export default function Home() {
       .catch(console.error);
   }, []);
 
+  // Computed values
   const fallbackTestimonials: TestimonialItem[] = [
     { text: "The silhouette of the trench coat is unmatched. Pure architectural bliss.", name: "Anonymous", role: "Verified Purchase — London" },
     { text: "Obsessed with the monochromatic palette. Getting ready every morning is an exercise in effortless luxury.", name: "Anonymous", role: "Verified Purchase — Tokyo" },
@@ -94,17 +108,27 @@ export default function Home() {
   const col2 = activeTestimonials.slice(Math.ceil(activeTestimonials.length / 3), Math.ceil((activeTestimonials.length * 2) / 3));
   const col3 = activeTestimonials.slice(Math.ceil((activeTestimonials.length * 2) / 3));
 
+  // Show loading state until CMS data is fetched
+  if (isLoading || !cmsData) {
+    return (
+      <div className="flex flex-col min-h-screen items-center justify-center">
+        <div className="animate-pulse text-secondary">Loading...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* ─── Hero Section ─────────────────────────────────────────── */}
       <section className="relative h-[calc(100vh-4rem)] md:h-[90vh] min-h-[600px] w-full overflow-hidden flex items-center justify-center">
-        <div className="absolute inset-0 bg-neutral-900">
+        <div className="absolute inset-0 bg-neutral-900/30">
           <Image
+            key={cmsData.heroImage}
             src={cmsData.heroImage}
             alt="High-end architectural fashion"
             fill
             priority
-            className="object-cover opacity-80"
+            className="object-cover"
             sizes="100vw"
           />
         </div>

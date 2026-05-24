@@ -12,10 +12,14 @@ export async function GET() {
       .single();
 
     if (error || !cms) {
-      return NextResponse.json({ success: true, data: DEFAULT_CMS });
+      return NextResponse.json({ success: true, data: DEFAULT_CMS }, {
+        headers: { "Cache-Control": "no-store" },
+      });
     }
 
-    return NextResponse.json({ success: true, data: formatCms(cms) });
+    return NextResponse.json({ success: true, data: formatCms(cms) }, {
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to load CMS";
     return NextResponse.json({ success: false, error: message }, { status: 500 });
@@ -46,8 +50,7 @@ export async function PUT(request: Request) {
     if (body.storeFacebook !== undefined) dbUpdates.store_facebook = body.storeFacebook;
     const { data: updatedCms, error } = await supabase
       .from("cms_settings")
-      .update(dbUpdates)
-      .eq("id", "global")
+      .upsert({ id: "global", ...dbUpdates }, { onConflict: "id" })
       .select()
       .single();
 
