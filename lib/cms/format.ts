@@ -8,6 +8,13 @@ export interface CmsData {
   promoHeading: string;
   promoCtaText: string;
   promoIntro: string;
+  storeName: string;
+  storeTagline: string;
+  storeEmail: string;
+  storePhone: string;
+  storeInstagram: string;
+  storeTwitter: string;
+  storeFacebook: string;
 }
 
 export const DEFAULT_CMS: CmsData = {
@@ -23,6 +30,13 @@ export const DEFAULT_CMS: CmsData = {
   promoHeading: "New Arrivals / Series 02",
   promoCtaText: "Explore the Series",
   promoIntro: "COLLECTION 2026",
+  storeName: "Aesthete Studio",
+  storeTagline: "Architectural Forms in Fashion",
+  storeEmail: "",
+  storePhone: "",
+  storeInstagram: "",
+  storeTwitter: "",
+  storeFacebook: "",
 };
 
 type CmsRow = {
@@ -35,6 +49,13 @@ type CmsRow = {
   promo_heading?: string | null;
   promo_cta_text?: string | null;
   promo_intro?: string | null;
+  store_name?: string | null;
+  store_tagline?: string | null;
+  store_email?: string | null;
+  store_phone?: string | null;
+  store_instagram?: string | null;
+  store_twitter?: string | null;
+  store_facebook?: string | null;
 };
 
 export function formatCms(row: CmsRow | null | undefined): CmsData {
@@ -50,5 +71,12 @@ export function formatCms(row: CmsRow | null | undefined): CmsData {
     promoHeading: row.promo_heading ?? DEFAULT_CMS.promoHeading,
     promoCtaText: row.promo_cta_text ?? DEFAULT_CMS.promoCtaText,
     promoIntro: row.promo_intro ?? DEFAULT_CMS.promoIntro,
+    storeName: row.store_name ?? DEFAULT_CMS.storeName,
+    storeTagline: row.store_tagline ?? DEFAULT_CMS.storeTagline,
+    storeEmail: row.store_email ?? DEFAULT_CMS.storeEmail,
+    storePhone: row.store_phone ?? DEFAULT_CMS.storePhone,
+    storeInstagram: row.store_instagram ?? DEFAULT_CMS.storeInstagram,
+    storeTwitter: row.store_twitter ?? DEFAULT_CMS.storeTwitter,
+    storeFacebook: row.store_facebook ?? DEFAULT_CMS.storeFacebook,
   };
 }
