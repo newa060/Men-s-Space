@@ -1,8 +1,29 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
+
+interface CmsFooterData {
+  storeLocationUrl: string;
+}
 
 export default function Footer() {
+  const [cmsData, setCmsData] = useState<CmsFooterData>({ storeLocationUrl: "" });
+  const [mapOpen, setMapOpen] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/cms")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success) {
+          setCmsData({
+            storeLocationUrl: json.data.storeLocationUrl || "",
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <footer className="bg-primary text-on-primary mt-24">
       {/* Newsletter Band */}
@@ -82,6 +103,15 @@ export default function Footer() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <button
+                  onClick={() => setMapOpen(true)}
+                  className="text-sm text-white/70 hover:text-white transition-colors flex items-center gap-1.5 group"
+                >
+                  <span className="material-symbols-outlined text-[14px] group-hover:text-white transition-colors">location_on</span>
+                  Location
+                </button>
+              </li>
             </ul>
           </div>
         </div>
@@ -102,6 +132,56 @@ export default function Footer() {
           </div>
         </div>
       </div>
+
+      {/* Map Popup */}
+      {mapOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={() => setMapOpen(false)}
+        >
+          <div
+            className="bg-primary border border-white/20 w-full max-w-sm shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Popup Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px]">location_on</span>
+                <p className="text-[11px] font-bold tracking-widest uppercase">Our Location</p>
+              </div>
+              <button
+                onClick={() => setMapOpen(false)}
+                className="text-white/50 hover:text-white transition-colors"
+                aria-label="Close map"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="px-6 py-5">
+              {cmsData.storeLocationUrl ? (
+                <a
+                  href={cmsData.storeLocationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full bg-on-primary text-primary px-6 py-3 text-[11px] font-bold tracking-widest uppercase hover:bg-white/90 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+                  Open in Google Maps
+                </a>
+              ) : (
+                <div className="flex flex-col items-center gap-3 py-4 text-center">
+                  <span className="material-symbols-outlined text-[36px] text-white/20">location_off</span>
+                  <p className="text-[12px] text-white/40 leading-relaxed">
+                    No location has been set yet.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </footer>
   );
 }

@@ -16,6 +16,8 @@ export interface CmsData {
   storeTwitter: string;
   storeFacebook: string;
   featuredNewArrivals: string[]; // Array of product IDs
+  storeLocation: string;
+  storeLocationUrl: string;
 }
 
 export const DEFAULT_CMS: CmsData = {
@@ -39,6 +41,8 @@ export const DEFAULT_CMS: CmsData = {
   storeTwitter: "",
   storeFacebook: "",
   featuredNewArrivals: [],
+  storeLocation: "",
+  storeLocationUrl: "",
 };
 
 type CmsRow = {
@@ -59,6 +63,8 @@ type CmsRow = {
   store_twitter?: string | null;
   store_facebook?: string | null;
   featured_new_arrivals?: string[] | null;
+  store_location?: string | null;
+  store_location_url?: string | null;
 };
 
 export function formatCms(row: CmsRow | null | undefined): CmsData {
@@ -82,5 +88,7 @@ export function formatCms(row: CmsRow | null | undefined): CmsData {
     storeTwitter: row.store_twitter ?? DEFAULT_CMS.storeTwitter,
     storeFacebook: row.store_facebook ?? DEFAULT_CMS.storeFacebook,
     featuredNewArrivals: row.featured_new_arrivals ?? DEFAULT_CMS.featuredNewArrivals,
+    storeLocation: row.store_location ?? DEFAULT_CMS.storeLocation,
+    storeLocationUrl: row.store_location_url ?? DEFAULT_CMS.storeLocationUrl,
   };
 }

@@ -47,6 +47,8 @@ export async function PUT(request: Request) {
     if (body.storePhone !== undefined) dbUpdates.store_phone = body.storePhone;
     if (body.storeInstagram !== undefined) dbUpdates.store_instagram = body.storeInstagram;
     if (body.storeTwitter !== undefined) dbUpdates.store_twitter = body.storeTwitter;
+    if (body.storeLocation !== undefined) dbUpdates.store_location = body.storeLocation;
+    if (body.storeLocationUrl !== undefined) dbUpdates.store_location_url = body.storeLocationUrl;
     if (body.storeFacebook !== undefined) dbUpdates.store_facebook = body.storeFacebook;
     if (body.featuredNewArrivals !== undefined) dbUpdates.featured_new_arrivals = body.featuredNewArrivals;
     

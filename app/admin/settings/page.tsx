@@ -53,6 +53,7 @@ export default function SettingsPage() {
   const [storeInstagram, setStoreInstagram] = useState("");
   const [storeTwitter, setStoreTwitter] = useState("");
   const [storeFacebook, setStoreFacebook] = useState("");
+  const [storeLocationUrl, setStoreLocationUrl] = useState("");
   const [storeSaving, setStoreSaving] = useState(false);
   const [storeMsg, setStoreMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -98,6 +99,7 @@ export default function SettingsPage() {
           setStoreInstagram(d.storeInstagram || "");
           setStoreTwitter(d.storeTwitter || "");
           setStoreFacebook(d.storeFacebook || "");
+          setStoreLocationUrl(d.storeLocationUrl || "");
         }
       });
   }, [activeTab]);
@@ -135,7 +137,7 @@ export default function SettingsPage() {
       const res = await fetch("/api/admin/cms", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ storeName, storeTagline, storeEmail, storePhone, storeInstagram, storeTwitter, storeFacebook }),
+        body: JSON.stringify({ storeName, storeTagline, storeEmail, storePhone, storeInstagram, storeTwitter, storeFacebook, storeLocationUrl }),
       });
       const json = await res.json();
       if (json.success) {
@@ -524,6 +526,26 @@ export default function SettingsPage() {
                           placeholder="+1 (555) 000-0000"
                           className="bg-surface-container border border-outline-variant text-on-surface p-3 text-[13px] focus:outline-none focus:border-primary placeholder:text-on-surface-variant/30"
                         />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-outline-variant pt-6">
+                    <p className="text-[11px] font-bold tracking-widest uppercase text-on-surface-variant mb-4">Location</p>
+                    <div className="grid grid-cols-1 gap-6">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[14px]">map</span>
+                          Google Maps URL
+                        </label>
+                        <input
+                          type="text"
+                          value={storeLocationUrl}
+                          onChange={(e) => setStoreLocationUrl(e.target.value)}
+                          placeholder="https://maps.google.com/?q=..."
+                          className="bg-surface-container border border-outline-variant text-on-surface p-3 text-[13px] focus:outline-none focus:border-primary placeholder:text-on-surface-variant/30"
+                        />
+                        <p className="text-[10px] text-on-surface-variant/50">Paste the full Google Maps link for your store. Customers will be redirected here when they click the map.</p>
                       </div>
                     </div>
                   </div>
