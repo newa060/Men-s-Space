@@ -256,15 +256,7 @@ export default function Home() {
           onMouseEnter={() => setIsGalleryHovered(true)}
           onMouseLeave={() => setIsGalleryHovered(false)}
         >
-          {/* Fade edges */}
           <div className="relative">
-            <div className="absolute left-0 top-0 h-full w-24 z-10 pointer-events-none"
-              style={{ background: "linear-gradient(to right, var(--surface-container), transparent)" }}
-            />
-            <div className="absolute right-0 top-0 h-full w-24 z-10 pointer-events-none"
-              style={{ background: "linear-gradient(to left, var(--surface-container), transparent)" }}
-            />
-
             {/* Track — two identical copies for seamless loop */}
             <div
               className="flex gap-6"
