@@ -42,7 +42,7 @@ function AdminLoginForm() {
 
       // Admin confirmed — redirect to intended page or dashboard
       const redirect = searchParams.get("redirect") || "/admin/dashboard";
-      router.push(redirect);
+      router.replace(redirect);
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred");
     } finally {
