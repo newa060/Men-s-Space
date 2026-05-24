@@ -20,8 +20,11 @@ export default function Home() {
   const [gallerySlides, setGallerySlides] = useState<GalleryItem[]>([]);
   const [categories, setCategories] = useState<{ title: string; image: string; href: string }[]>([]);
   const [testimonials, setTestimonials] = useState<TestimonialItem[]>([]);
-  const [newArrivals, setNewArrivals] = useState<{ id: string; name: string; image: string; price: number }[]>([]);
+  const [newArrivals, setNewArrivals] = useState<{ id: string; name: string; image: string; images: string[]; price: number }[]>([]);
+  const [hoveredProductId, setHoveredProductId] = useState<string | null>(null);
+  const [currentImageIndices, setCurrentImageIndices] = useState<Record<string, number>>({});
   const categoryScrollRef = useRef<HTMLDivElement>(null);
+  const imageIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // All effects together
   // Fetch fresh CMS data from the public endpoint on mount
@@ -92,22 +95,63 @@ export default function Home() {
       .catch(console.error);
   }, []);
 
-  // Fetch new arrivals (products marked as new arrival, limit 3)
+  // Fetch new arrivals (featured products from CMS)
   useEffect(() => {
-    fetch("/api/products?isNewArrival=true")
-      .then((r) => r.json())
-      .then((json) => {
-        if (json.success && json.data?.length) {
-          const latest = json.data.slice(0, 3).map((p: any) => ({
-            id: p.id,
-            name: p.name,
-            image: p.image,
-            price: p.price,
-          }));
-          setNewArrivals(latest);
-        }
-      })
-      .catch(console.error);
+    console.log('CMS Data:', cmsData);
+    console.log('Featured New Arrivals:', cmsData?.featuredNewArrivals);
+    
+    if (!cmsData?.featuredNewArrivals || cmsData.featuredNewArrivals.length === 0) {
+      console.log('No featured products, using fallback');
+      // Fallback to is_new_arrival filter if no featured products
+      fetch("/api/products?isNewArrival=true")
+        .then((r) => r.json())
+        .then((json) => {
+          console.log('Fallback products:', json);
+          if (json.success && json.data?.length) {
+            const latest = json.data.slice(0, 3).map((p: any) => ({
+              id: p.id,
+              name: p.name,
+              image: p.image,
+              images: p.images || [],
+              price: p.price,
+            }));
+            setNewArrivals(latest);
+          }
+        })
+        .catch(console.error);
+    } else {
+      console.log('Using featured products:', cmsData.featuredNewArrivals);
+      // Fetch specific featured products
+      fetch("/api/products")
+        .then((r) => r.json())
+        .then((json) => {
+          console.log('All products:', json);
+          if (json.success && json.data?.length) {
+            const featured = json.data
+              .filter((p: any) => cmsData.featuredNewArrivals.includes(p.id))
+              .slice(0, 3)
+              .map((p: any) => ({
+                id: p.id,
+                name: p.name,
+                image: p.image,
+                images: p.images || [],
+                price: p.price,
+              }));
+            console.log('Featured products found:', featured);
+            setNewArrivals(featured);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [cmsData]);
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (imageIntervalRef.current) {
+        clearInterval(imageIntervalRef.current);
+      }
+    };
   }, []);
 
   // Computed values
@@ -128,6 +172,28 @@ export default function Home() {
   const col2 = activeTestimonials.slice(Math.ceil(activeTestimonials.length / 3), Math.ceil((activeTestimonials.length * 2) / 3));
   const col3 = activeTestimonials.slice(Math.ceil((activeTestimonials.length * 2) / 3));
 
+  // Helper function to extract YouTube video ID from URL
+  const getYouTubeVideoId = (url: string): string | null => {
+    if (!url) return null;
+    
+    // Match various YouTube URL formats
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /^([a-zA-Z0-9_-]{11})$/ // Direct video ID
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) return match[1];
+    }
+    
+    return null;
+  };
+
+  const isYouTubeUrl = (url: string): boolean => {
+    return url.includes('youtube.com') || url.includes('youtu.be') || getYouTubeVideoId(url) !== null;
+  };
+
   // Show loading state until CMS data is fetched
   if (isLoading || !cmsData) {
     return (
@@ -137,20 +203,41 @@ export default function Home() {
     );
   }
 
+  const heroVideoId = isYouTubeUrl(cmsData.heroImage) ? getYouTubeVideoId(cmsData.heroImage) : null;
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* ─── Hero Section ─────────────────────────────────────────── */}
       <section className="relative h-[calc(100vh-4rem)] md:h-[90vh] min-h-[600px] w-full overflow-hidden flex items-center justify-center">
-        <div className="absolute inset-0 bg-neutral-900/30">
-          <Image
-            key={cmsData.heroImage}
-            src={cmsData.heroImage}
-            alt="High-end architectural fashion"
-            fill
-            priority
-            className="object-cover"
-            sizes="100vw"
-          />
+        <div className="absolute inset-0">
+          {heroVideoId ? (
+            // YouTube Video
+            <iframe
+              src={`https://www.youtube.com/embed/${heroVideoId}?autoplay=1&mute=1&loop=1&playlist=${heroVideoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1`}
+              title="Hero video"
+              allow="autoplay; encrypted-media"
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+              style={{
+                width: '100vw',
+                height: '100vh',
+                objectFit: 'cover',
+                transform: 'scale(1.5)', // Zoom to hide controls
+              }}
+            />
+          ) : (
+            // Image
+            <Image
+              key={cmsData.heroImage}
+              src={cmsData.heroImage}
+              alt="High-end architectural fashion"
+              fill
+              priority
+              className="object-cover"
+              sizes="100vw"
+            />
+          )}
+          {/* Dark overlay for better text visibility */}
+          <div className="absolute inset-0 bg-black/50" />
         </div>
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -158,20 +245,20 @@ export default function Home() {
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="relative z-10 text-center px-6 max-w-4xl"
         >
-          <h1 className="text-5xl md:text-8xl font-light text-on-primary tracking-tight uppercase leading-none mb-8">
+          <h1 className="text-5xl md:text-8xl font-light text-white tracking-tight uppercase leading-none mb-8 drop-shadow-2xl">
             {cmsData.heroTitle.split(" ").map((word, i) => (
               <span key={i} className="block md:inline md:mr-4">
                 {i % 2 === 1 ? <span className="italic font-serif">{word}</span> : word}
               </span>
             ))}
           </h1>
-          <p className="text-lg md:text-xl text-on-primary/80 max-w-xl mx-auto mb-10 font-light leading-relaxed">
+          <p className="text-lg md:text-xl text-white/90 max-w-xl mx-auto mb-10 font-light leading-relaxed drop-shadow-lg">
             {cmsData.heroSubtitle}
           </p>
           <div>
             <Link
               href="/collection"
-              className="inline-block bg-on-primary text-primary px-10 py-4 text-label-caps tracking-widest font-semibold hover:bg-white/95 transition-colors border border-on-primary"
+              className="inline-block bg-white text-black px-10 py-4 text-label-caps tracking-widest font-semibold hover:bg-white/95 transition-colors border border-white shadow-xl"
             >
               {cmsData.heroCtaText}
             </Link>
@@ -272,14 +359,6 @@ export default function Home() {
               <div className="w-8 h-[1px] bg-outline-variant" />
             </div>
             <h2 className="text-4xl md:text-6xl font-bold uppercase tracking-tight mb-6">SHOP NOW</h2>
-            <div className="flex justify-center gap-3 mb-8">
-              <button className="px-6 py-2 bg-primary text-on-primary text-label-caps tracking-widest font-semibold uppercase">
-                NEW ARRIVALS
-              </button>
-              <button className="px-6 py-2 border border-outline text-secondary text-label-caps tracking-widest font-semibold uppercase hover:border-primary hover:text-primary transition-colors">
-                TRENDING
-              </button>
-            </div>
           </div>
 
           {/* Product Grid */}
@@ -291,28 +370,66 @@ export default function Home() {
                     <div className="aspect-[3/4] bg-surface-container-highest mb-4" />
                   </div>
                 ))
-              : newArrivals.map((product, idx) => (
-                  <motion.div
-                    key={product.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: idx * 0.1 }}
-                    className="group cursor-pointer"
-                  >
-                    <Link href={`/product/${product.id}`}>
+              : newArrivals.map((product, idx) => {
+                  const allImages = [product.image, ...(product.images || [])];
+                  const currentIndex = currentImageIndices[product.id] || 0;
+                  const displayImage = allImages[currentIndex % allImages.length];
+                  
+                  const handleMouseEnter = () => {
+                    if (allImages.length <= 1) return;
+                    
+                    setHoveredProductId(product.id);
+                    
+                    // Immediately show the second image
+                    setCurrentImageIndices(prev => ({ ...prev, [product.id]: 1 }));
+                    
+                    // Clear any existing interval
+                    if (imageIntervalRef.current) {
+                      clearInterval(imageIntervalRef.current);
+                    }
+                    
+                    // Start cycling through images from the third image
+                    imageIntervalRef.current = setInterval(() => {
+                      setCurrentImageIndices(prev => {
+                        const nextIndex = ((prev[product.id] || 1) + 1) % allImages.length;
+                        return { ...prev, [product.id]: nextIndex };
+                      });
+                    }, 600); // Change image every 600ms
+                  };
+                  
+                  const handleMouseLeave = () => {
+                    setHoveredProductId(null);
+                    if (imageIntervalRef.current) {
+                      clearInterval(imageIntervalRef.current);
+                      imageIntervalRef.current = null;
+                    }
+                    // Reset to first image
+                    setCurrentImageIndices(prev => ({ ...prev, [product.id]: 0 }));
+                  };
+                  
+                  return (
+                    <motion.div
+                      key={product.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.5, delay: idx * 0.1 }}
+                      className="group"
+                      onMouseEnter={handleMouseEnter}
+                      onMouseLeave={handleMouseLeave}
+                    >
                       <div className="aspect-[3/4] bg-surface-container-highest relative overflow-hidden mb-4">
                         <Image
-                          src={product.image}
+                          src={displayImage}
                           alt={product.name}
                           fill
-                          className="object-cover group-hover:scale-[1.05] transition-transform duration-700 ease-out"
+                          className="object-cover pointer-events-none"
                           sizes="(max-width: 768px) 100vw, 33vw"
                         />
                       </div>
-                    </Link>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  );
+                })}
           </div>
 
           {/* CTA Button */}

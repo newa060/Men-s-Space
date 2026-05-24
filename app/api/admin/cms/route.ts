@@ -31,7 +31,7 @@ export async function PUT(request: Request) {
     const body = await request.json();
     const supabase = createClient(true);
 
-    const dbUpdates: Record<string, string> = {};
+    const dbUpdates: Record<string, any> = {};
     if (body.heroTitle !== undefined) dbUpdates.hero_title = body.heroTitle;
     if (body.heroSubtitle !== undefined) dbUpdates.hero_subtitle = body.heroSubtitle;
     if (body.heroImage !== undefined) dbUpdates.hero_image = body.heroImage;
@@ -48,6 +48,8 @@ export async function PUT(request: Request) {
     if (body.storeInstagram !== undefined) dbUpdates.store_instagram = body.storeInstagram;
     if (body.storeTwitter !== undefined) dbUpdates.store_twitter = body.storeTwitter;
     if (body.storeFacebook !== undefined) dbUpdates.store_facebook = body.storeFacebook;
+    if (body.featuredNewArrivals !== undefined) dbUpdates.featured_new_arrivals = body.featuredNewArrivals;
+    
     const { data: updatedCms, error } = await supabase
       .from("cms_settings")
       .upsert({ id: "global", ...dbUpdates }, { onConflict: "id" })

@@ -25,9 +25,14 @@ export default function ContentPage() {
   const [promoHeading, setPromoHeading] = useState(cmsData.promoHeading);
   const [promoCtaText, setPromoCtaText] = useState(cmsData.promoCtaText);
   const [promoIntro, setPromoIntro] = useState(cmsData.promoIntro);
+  const [featuredNewArrivals, setFeaturedNewArrivals] = useState<string[]>(cmsData.featuredNewArrivals || []);
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  // Products state for New Arrivals selection
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
 
   // Confirmation modal state
   const [confirmModal, setConfirmModal] = useState<null | "publish" | "discard">(null);
@@ -41,7 +46,8 @@ export default function ContentPage() {
     promoImage !== cmsData.promoImage ||
     promoHeading !== cmsData.promoHeading ||
     promoCtaText !== cmsData.promoCtaText ||
-    promoIntro !== cmsData.promoIntro;
+    promoIntro !== cmsData.promoIntro ||
+    JSON.stringify(featuredNewArrivals) !== JSON.stringify(cmsData.featuredNewArrivals || []);
 
   const handlePublishChanges = async () => {
     setConfirmModal(null);
@@ -57,6 +63,7 @@ export default function ContentPage() {
       promoHeading,
       promoCtaText,
       promoIntro,
+      featuredNewArrivals,
     });
     setSaving(false);
     setSaved(true);
@@ -74,6 +81,7 @@ export default function ContentPage() {
     setPromoHeading(cmsData.promoHeading);
     setPromoCtaText(cmsData.promoCtaText);
     setPromoIntro(cmsData.promoIntro);
+    setFeaturedNewArrivals(cmsData.featuredNewArrivals || []);
   };
 
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
@@ -116,7 +124,22 @@ export default function ContentPage() {
     setPromoHeading(cmsData.promoHeading);
     setPromoCtaText(cmsData.promoCtaText);
     setPromoIntro(cmsData.promoIntro);
+    setFeaturedNewArrivals(cmsData.featuredNewArrivals || []);
   }, [cmsData]);
+
+  // Fetch all products for selection
+  useEffect(() => {
+    if (activeTab === "arrivals") {
+      setProductsLoading(true);
+      fetch("/api/admin/products?isNewArrival=true")
+        .then((r) => r.json())
+        .then((json) => {
+          if (json.success) setAllProducts(json.data || []);
+        })
+        .catch(console.error)
+        .finally(() => setProductsLoading(false));
+    }
+  }, [activeTab]);
 
   const removeGalleryItem = async (id: string) => {
     setGalleryError("");
@@ -536,55 +559,95 @@ export default function ContentPage() {
                 className="space-y-8"
               >
                 <div className="flex flex-col gap-2">
-                  <h3 className="text-[20px] font-light text-on-surface italic font-serif">Promo Banner &amp; Editorial Drops</h3>
+                  <h3 className="text-[20px] font-light text-on-surface italic font-serif">Featured New Arrivals</h3>
                   <p className="text-[13px] text-on-surface-variant">
-                    Controls the New Arrivals page hero and the homepage promo banner. Click Publish Changes to save.
+                    Select up to 3 products to feature in the New Arrivals section on the homepage. Click Publish Changes to save.
                   </p>
                 </div>
 
-                <div className="bg-surface-container border border-outline-variant p-6 flex flex-col gap-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div>
-                      <AdminImageField
-                        value={promoImage}
-                        onChange={setPromoImage}
-                        label="Promo Visual"
-                        aspectClass="aspect-square"
-                        folder="studio"
-                        emptyLabel="Upload promo image"
-                      />
-                    </div>
-                    <div className="lg:col-span-2 space-y-4">
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Promotion Heading</label>
-                        <input
-                          type="text"
-                          value={promoHeading}
-                          onChange={(e) => setPromoHeading(e.target.value)}
-                          className="bg-background border border-outline-variant text-on-surface p-3 font-serif italic text-[16px] focus:outline-none focus:border-primary"
-                        />
+                {productsLoading ? (
+                  <p className="text-[13px] text-on-surface-variant italic">Loading products…</p>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Selected Products */}
+                    {featuredNewArrivals.length > 0 && (
+                      <div className="bg-surface-container border border-primary p-6 space-y-4">
+                        <div className="flex items-center gap-2 mb-4">
+                          <span className="material-symbols-outlined text-primary text-[20px]">star</span>
+                          <h4 className="text-[13px] font-bold uppercase tracking-widest text-primary">
+                            Featured Products ({featuredNewArrivals.length}/3)
+                          </h4>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {featuredNewArrivals.map((productId, index) => {
+                            const product = allProducts.find((p) => p.id === productId);
+                            if (!product) return null;
+                            return (
+                              <div key={productId} className="bg-surface border border-outline-variant p-3 relative group">
+                                <div className="aspect-[3/4] bg-surface-container-highest relative mb-2">
+                                  <Image
+                                    src={product.image}
+                                    alt={product.name}
+                                    fill
+                                    className="object-cover"
+                                    sizes="200px"
+                                  />
+                                  <button
+                                    onClick={() => setFeaturedNewArrivals((prev) => prev.filter((id) => id !== productId))}
+                                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-error text-on-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                    aria-label="Remove"
+                                  >
+                                    <span className="material-symbols-outlined text-[16px]">close</span>
+                                  </button>
+                                  <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center text-[11px] font-bold">
+                                    {index + 1}
+                                  </div>
+                                </div>
+                                <p className="text-[11px] text-on-surface font-medium truncate">{product.name}</p>
+                                <p className="text-[10px] text-on-surface-variant">${product.price}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Eyebrow / Series Label</label>
-                        <input
-                          type="text"
-                          value={promoIntro}
-                          onChange={(e) => setPromoIntro(e.target.value)}
-                          className="bg-background border border-outline-variant text-on-surface p-3 text-[11px] font-semibold tracking-widest uppercase focus:outline-none focus:border-primary"
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">CTA Button Label</label>
-                        <input
-                          type="text"
-                          value={promoCtaText}
-                          onChange={(e) => setPromoCtaText(e.target.value)}
-                          className="bg-background border border-outline-variant text-on-surface p-3 text-[11px] font-semibold tracking-widest uppercase focus:outline-none focus:border-primary"
-                        />
+                    )}
+
+                    {/* Available Products */}
+                    <div className="space-y-3">
+                      <h4 className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
+                        Available Products (Click to Add)
+                      </h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 max-h-[600px] overflow-y-auto p-1">
+                        {allProducts
+                          .filter((p) => !featuredNewArrivals.includes(p.id))
+                          .map((product) => (
+                            <button
+                              key={product.id}
+                              onClick={() => {
+                                if (featuredNewArrivals.length < 3) {
+                                  setFeaturedNewArrivals((prev) => [...prev, product.id]);
+                                }
+                              }}
+                              disabled={featuredNewArrivals.length >= 3}
+                              className="bg-surface-container border border-outline-variant p-2 hover:border-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left group"
+                            >
+                              <div className="aspect-[3/4] bg-surface-container-highest relative mb-2">
+                                <Image
+                                  src={product.image}
+                                  alt={product.name}
+                                  fill
+                                  className="object-cover group-hover:scale-105 transition-transform"
+                                  sizes="150px"
+                                />
+                              </div>
+                              <p className="text-[10px] text-on-surface font-medium truncate">{product.name}</p>
+                              <p className="text-[9px] text-on-surface-variant">${product.price}</p>
+                            </button>
+                          ))}
                       </div>
                     </div>
                   </div>
-                </div>
+                )}
               </motion.section>
             )}
           </AnimatePresence>

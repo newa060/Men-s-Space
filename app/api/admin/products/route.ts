@@ -2,13 +2,22 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { ProductSchema } from "@/lib/validations/product";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = createClient(true);
-    const { data: products, error } = await supabase
+    const { searchParams } = new URL(request.url);
+    const isNewArrival = searchParams.get("isNewArrival");
+
+    let query = supabase
       .from("products")
       .select("*")
       .order("created_at", { ascending: false });
+
+    if (isNewArrival === "true") {
+      query = query.eq("is_new_arrival", true);
+    }
+
+    const { data: products, error } = await query;
 
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
