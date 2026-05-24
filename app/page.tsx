@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAdmin } from "@/context/AdminContext";
 import type { GalleryItem } from "@/lib/gallery/format";
 import { TestimonialsColumn } from "@/components/ui/testimonials-columns";
@@ -20,6 +20,8 @@ export default function Home() {
   const [gallerySlides, setGallerySlides] = useState<GalleryItem[]>([]);
   const [categories, setCategories] = useState<{ title: string; image: string; href: string }[]>([]);
   const [testimonials, setTestimonials] = useState<TestimonialItem[]>([]);
+  const [newArrivals, setNewArrivals] = useState<{ id: string; name: string; image: string; price: number }[]>([]);
+  const categoryScrollRef = useRef<HTMLDivElement>(null);
 
   // All effects together
   // Fetch fresh CMS data from the public endpoint on mount
@@ -85,6 +87,24 @@ export default function Home() {
               role: `Verified Purchase — ${f.location}`,
             }))
           );
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  // Fetch new arrivals (products marked as new arrival, limit 3)
+  useEffect(() => {
+    fetch("/api/products?isNewArrival=true")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success && json.data?.length) {
+          const latest = json.data.slice(0, 3).map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            image: p.image,
+            price: p.price,
+          }));
+          setNewArrivals(latest);
         }
       })
       .catch(console.error);
@@ -160,22 +180,51 @@ export default function Home() {
       </section>
 
       {/* ─── Category Selection ────────────────────────────────────── */}
-      <section className="py-24 px-5 md:px-16 max-w-screen-xl mx-auto w-full">
+      <section className="py-16 px-4 md:px-12 lg:px-16 w-full">
         <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-4">
           <h2 className="text-3xl md:text-4xl font-light uppercase tracking-tight">Curated Selection</h2>
-          <Link
-            href="/collection"
-            className="text-label-caps text-secondary hover:text-primary transition-colors border-b border-outline pb-1"
-          >
-            View All
-          </Link>
+          <div className="flex items-center gap-4">
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  if (categoryScrollRef.current) {
+                    categoryScrollRef.current.scrollBy({ left: -400, behavior: 'smooth' });
+                  }
+                }}
+                className="p-2 border border-outline hover:border-primary hover:bg-surface-container transition-colors"
+                aria-label="Previous categories"
+              >
+                <ChevronLeft size={20} className="text-secondary" />
+              </button>
+              <button
+                onClick={() => {
+                  if (categoryScrollRef.current) {
+                    categoryScrollRef.current.scrollBy({ left: 400, behavior: 'smooth' });
+                  }
+                }}
+                className="p-2 border border-outline hover:border-primary hover:bg-surface-container transition-colors"
+                aria-label="Next categories"
+              >
+                <ChevronRight size={20} className="text-secondary" />
+              </button>
+            </div>
+            <Link
+              href="/collection"
+              className="text-label-caps text-secondary hover:text-primary transition-colors border-b border-outline pb-1"
+            >
+              View All
+            </Link>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div 
+          ref={categoryScrollRef}
+          className="flex gap-6 overflow-x-auto no-scrollbar scroll-smooth"
+        >
           {categories.length === 0
             ? // Skeleton placeholders while loading
-              Array.from({ length: 3 }).map((_, idx) => (
-                <div key={idx} className="animate-pulse">
+              Array.from({ length: 4 }).map((_, idx) => (
+                <div key={idx} className="flex-none w-[280px] md:w-[320px] animate-pulse">
                   <div className="aspect-[4/5] bg-surface-container mb-4" />
                   <div className="flex justify-between items-center px-1">
                     <div className="h-3 w-24 bg-surface-container rounded" />
@@ -190,7 +239,7 @@ export default function Home() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-100px" }}
                   transition={{ duration: 0.5, delay: idx * 0.1 }}
-                  className="group cursor-pointer"
+                  className="flex-none w-[280px] md:w-[320px] group cursor-pointer"
                 >
                   <Link href={cat.href}>
                     <div className="aspect-[4/5] bg-surface-container relative overflow-hidden mb-4">
@@ -199,7 +248,7 @@ export default function Home() {
                         alt={cat.title}
                         fill
                         className="object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out"
-                        sizes="(max-width: 768px) 100vw, 33vw"
+                        sizes="320px"
                       />
                     </div>
                     <div className="flex justify-between items-center px-1">
@@ -212,31 +261,67 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ─── New Arrivals Promo ───────────────────────────────────── */}
-      <section className="max-w-screen-xl mx-auto px-5 md:px-16 py-24 w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center border border-outline-variant/40 p-6 md:p-10 bg-surface-container">
-          <div className="aspect-square relative overflow-hidden bg-surface-container-highest">
-            <Image
-              src={cmsData.promoImage}
-              alt={cmsData.promoHeading}
-              fill
-              unoptimized
-              className="object-cover"
-              sizes="(max-width: 1024px) 100vw, 50vw"
-            />
+      {/* ─── New Arrivals / Shop Now ───────────────────────────────── */}
+      <section className="px-4 md:px-12 lg:px-16 py-16 w-full">
+        <div className="border border-outline-variant/40 p-8 md:p-12 bg-surface-container">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="w-8 h-[1px] bg-outline-variant" />
+              <span className="text-label-caps text-secondary uppercase tracking-widest">New Arrivals</span>
+              <div className="w-8 h-[1px] bg-outline-variant" />
+            </div>
+            <h2 className="text-4xl md:text-6xl font-bold uppercase tracking-tight mb-6">SHOP NOW</h2>
+            <div className="flex justify-center gap-3 mb-8">
+              <button className="px-6 py-2 bg-primary text-on-primary text-label-caps tracking-widest font-semibold uppercase">
+                NEW ARRIVALS
+              </button>
+              <button className="px-6 py-2 border border-outline text-secondary text-label-caps tracking-widest font-semibold uppercase hover:border-primary hover:text-primary transition-colors">
+                TRENDING
+              </button>
+            </div>
           </div>
-          <div className="space-y-6">
-            <span className="text-label-caps text-secondary uppercase tracking-widest">
-              {cmsData.promoIntro}
-            </span>
-            <h2 className="text-3xl md:text-4xl font-light italic font-serif text-primary leading-tight">
-              {cmsData.promoHeading}
-            </h2>
+
+          {/* Product Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {newArrivals.length === 0
+              ? // Skeleton placeholders
+                Array.from({ length: 3 }).map((_, idx) => (
+                  <div key={idx} className="animate-pulse">
+                    <div className="aspect-[3/4] bg-surface-container-highest mb-4" />
+                  </div>
+                ))
+              : newArrivals.map((product, idx) => (
+                  <motion.div
+                    key={product.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: idx * 0.1 }}
+                    className="group cursor-pointer"
+                  >
+                    <Link href={`/product/${product.id}`}>
+                      <div className="aspect-[3/4] bg-surface-container-highest relative overflow-hidden mb-4">
+                        <Image
+                          src={product.image}
+                          alt={product.name}
+                          fill
+                          className="object-cover group-hover:scale-[1.05] transition-transform duration-700 ease-out"
+                          sizes="(max-width: 768px) 100vw, 33vw"
+                        />
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))}
+          </div>
+
+          {/* CTA Button */}
+          <div className="text-center">
             <Link
               href="/new-arrivals"
-              className="inline-block bg-primary text-on-primary px-8 py-4 text-label-caps tracking-widest font-semibold hover:bg-primary-container transition-colors border border-primary uppercase"
+              className="inline-block bg-primary text-on-primary px-12 py-4 text-label-caps tracking-widest font-semibold hover:bg-primary-container transition-colors uppercase"
             >
-              {cmsData.promoCtaText}
+              EXPLORE THE SERIES
             </Link>
           </div>
         </div>
