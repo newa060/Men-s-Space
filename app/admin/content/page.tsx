@@ -29,7 +29,22 @@ export default function ContentPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState<null | "publish" | "discard">(null);
+
+  const hasUnsavedChanges =
+    heroTitle !== cmsData.heroTitle ||
+    heroSubtitle !== cmsData.heroSubtitle ||
+    heroImage !== cmsData.heroImage ||
+    heroCtaText !== cmsData.heroCtaText ||
+    featuredCategory !== cmsData.featuredCategory ||
+    promoImage !== cmsData.promoImage ||
+    promoHeading !== cmsData.promoHeading ||
+    promoCtaText !== cmsData.promoCtaText ||
+    promoIntro !== cmsData.promoIntro;
+
   const handlePublishChanges = async () => {
+    setConfirmModal(null);
     setSaving(true);
     setSaved(false);
     await updateCmsData({
@@ -46,6 +61,19 @@ export default function ContentPage() {
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleDiscard = () => {
+    setConfirmModal(null);
+    setHeroTitle(cmsData.heroTitle);
+    setHeroSubtitle(cmsData.heroSubtitle);
+    setHeroImage(cmsData.heroImage);
+    setHeroCtaText(cmsData.heroCtaText);
+    setFeaturedCategory(cmsData.featuredCategory);
+    setPromoImage(cmsData.promoImage);
+    setPromoHeading(cmsData.promoHeading);
+    setPromoCtaText(cmsData.promoCtaText);
+    setPromoIntro(cmsData.promoIntro);
   };
 
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
@@ -196,12 +224,17 @@ export default function ContentPage() {
               <p className="text-[13px] text-on-surface-variant">Update and curate your studio&apos;s public storefront interface.</p>
             </div>
             <div className="flex gap-4">
-              <button className="border border-outline-variant text-on-surface text-[11px] font-bold tracking-widest uppercase px-6 py-3 hover:bg-surface-container transition-colors">
+              <button
+                onClick={() => hasUnsavedChanges && setConfirmModal("discard")}
+                disabled={!hasUnsavedChanges || saving}
+                className="border border-outline-variant text-on-surface text-[11px] font-bold tracking-widest uppercase px-6 py-3 hover:bg-surface-container transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
                 Discard
               </button>
               <button
-                onClick={handlePublishChanges}
-                className="bg-primary text-on-primary font-bold text-[11px] uppercase tracking-widest px-6 py-3 flex items-center gap-2 hover:opacity-90 transition-all shadow-lg"
+                onClick={() => hasUnsavedChanges && setConfirmModal("publish")}
+                disabled={!hasUnsavedChanges || saving}
+                className="bg-primary text-on-primary font-bold text-[11px] uppercase tracking-widest px-6 py-3 flex items-center gap-2 hover:opacity-90 transition-all shadow-lg disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <span className="material-symbols-outlined text-[18px]">save</span>
                 {saved ? "Changes Published" : saving ? "Publishing..." : "Publish Changes"}
@@ -557,6 +590,85 @@ export default function ContentPage() {
           </AnimatePresence>
         </div>
       </main>
+
+      {/* ── Confirmation Modal ───────────────────────────────────── */}
+      <AnimatePresence>
+        {confirmModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            onClick={() => setConfirmModal(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              transition={{ duration: 0.18 }}
+              className="bg-surface-container-high border border-outline-variant w-full max-w-sm p-8 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {confirmModal === "publish" ? (
+                <>
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="material-symbols-outlined text-primary text-[28px]">save</span>
+                    <h3 className="text-[16px] font-light text-on-surface italic font-serif">
+                      Publish Changes
+                    </h3>
+                  </div>
+                  <p className="text-[13px] text-on-surface-variant mb-8 leading-relaxed">
+                    This will save and publish all your current edits to the live storefront. Are you sure you want to continue?
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setConfirmModal(null)}
+                      className="flex-1 py-2.5 border border-outline-variant text-[11px] font-bold tracking-widest uppercase text-on-surface-variant hover:bg-surface-container-highest transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handlePublishChanges}
+                      className="flex-1 py-2.5 bg-primary text-on-primary text-[11px] font-bold tracking-widest uppercase hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">save</span>
+                      Publish
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="material-symbols-outlined text-error text-[28px]">undo</span>
+                    <h3 className="text-[16px] font-light text-on-surface italic font-serif">
+                      Discard Changes
+                    </h3>
+                  </div>
+                  <p className="text-[13px] text-on-surface-variant mb-8 leading-relaxed">
+                    All unsaved edits will be lost and the form will reset to the last published state. This cannot be undone.
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setConfirmModal(null)}
+                      className="flex-1 py-2.5 border border-outline-variant text-[11px] font-bold tracking-widest uppercase text-on-surface-variant hover:bg-surface-container-highest transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleDiscard}
+                      className="flex-1 py-2.5 bg-error text-on-error text-[11px] font-bold tracking-widest uppercase hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">undo</span>
+                      Discard
+                    </button>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

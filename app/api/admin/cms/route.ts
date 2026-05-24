@@ -37,7 +37,13 @@ export async function PUT(request: Request) {
     if (body.promoHeading !== undefined) dbUpdates.promo_heading = body.promoHeading;
     if (body.promoCtaText !== undefined) dbUpdates.promo_cta_text = body.promoCtaText;
     if (body.promoIntro !== undefined) dbUpdates.promo_intro = body.promoIntro;
-
+    if (body.storeName !== undefined) dbUpdates.store_name = body.storeName;
+    if (body.storeTagline !== undefined) dbUpdates.store_tagline = body.storeTagline;
+    if (body.storeEmail !== undefined) dbUpdates.store_email = body.storeEmail;
+    if (body.storePhone !== undefined) dbUpdates.store_phone = body.storePhone;
+    if (body.storeInstagram !== undefined) dbUpdates.store_instagram = body.storeInstagram;
+    if (body.storeTwitter !== undefined) dbUpdates.store_twitter = body.storeTwitter;
+    if (body.storeFacebook !== undefined) dbUpdates.store_facebook = body.storeFacebook;
     const { data: updatedCms, error } = await supabase
       .from("cms_settings")
       .update(dbUpdates)
