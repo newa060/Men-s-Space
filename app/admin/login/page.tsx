@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Eye, EyeOff, Shield } from "lucide-react";
 
@@ -12,6 +12,30 @@ function AdminLoginForm() {
   const [error, setError] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [checking, setChecking] = useState(true);
+
+  // If already logged in as admin, skip the login page
+  useEffect(() => {
+    fetch("/api/auth/session")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.data?.user?.role === "admin") {
+          const redirect = searchParams.get("redirect") || "/admin/dashboard";
+          router.replace(redirect);
+        } else {
+          setChecking(false);
+        }
+      })
+      .catch(() => setChecking(false));
+  }, [router, searchParams]);
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-neutral-950">
+        <div className="w-5 h-5 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
