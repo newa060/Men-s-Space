@@ -163,10 +163,15 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         body: JSON.stringify(updatedFields),
       });
       const json = await response.json();
-      if (json.success) setCmsData(json.data);
-      else console.error('Failed to update CMS', json.error);
+      if (json.success) {
+        setCmsData(json.data);
+      } else {
+        console.error('Failed to update CMS:', json.error);
+        throw new Error(json.error || 'Failed to save');
+      }
     } catch (err) {
       console.error('Update CMS error', err);
+      throw err;
     }
   };
 

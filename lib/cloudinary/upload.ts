@@ -15,14 +15,15 @@ export function generateSignature(params: Record<string, string>) {
 
 export async function uploadImageBuffer(
   buffer: Buffer,
-  folder = "aesthete"
+  folder = "aesthete",
+  resourceType: "image" | "video" | "auto" = "image"
 ): Promise<
   | { success: true; secure_url: string; public_id: string }
   | { success: false; error: string }
 > {
   return new Promise((resolve) => {
     const uploadStream = cloudinary.uploader.upload_stream(
-      { folder, resource_type: "image" },
+      { folder, resource_type: resourceType },
       (error, result) => {
         if (error) {
           console.error("Cloudinary upload error:", error);

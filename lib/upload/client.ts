@@ -1,13 +1,44 @@
-const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-const MAX_SIZE_MB = 10;
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const ACCEPTED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/ogg", "video/quicktime"];
+const MAX_IMAGE_SIZE_MB = 10;
+const MAX_VIDEO_SIZE_MB = 100;
 
 export function validateImageFile(file: File): string | null {
-  if (!ACCEPTED_TYPES.includes(file.type)) {
+  if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
     return "Only JPG, PNG, WEBP, or GIF images are allowed.";
   }
-  if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-    return `Image must be smaller than ${MAX_SIZE_MB}MB.`;
+  if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+    return `Image must be smaller than ${MAX_IMAGE_SIZE_MB}MB.`;
   }
+  return null;
+}
+
+export function validateVideoFile(file: File): string | null {
+  if (!ACCEPTED_VIDEO_TYPES.includes(file.type)) {
+    return "Only MP4, WebM, OGG, or MOV videos are allowed.";
+  }
+  if (file.size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
+    return `Video must be smaller than ${MAX_VIDEO_SIZE_MB}MB.`;
+  }
+  return null;
+}
+
+export function validateMediaFile(file: File): string | null {
+  const isImage = ACCEPTED_IMAGE_TYPES.includes(file.type);
+  const isVideo = ACCEPTED_VIDEO_TYPES.includes(file.type);
+  
+  if (!isImage && !isVideo) {
+    return "Only images (JPG, PNG, WEBP, GIF) or videos (MP4, WebM, OGG, MOV) are allowed.";
+  }
+  
+  if (isImage && file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+    return `Image must be smaller than ${MAX_IMAGE_SIZE_MB}MB.`;
+  }
+  
+  if (isVideo && file.size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
+    return `Video must be smaller than ${MAX_VIDEO_SIZE_MB}MB.`;
+  }
+  
   return null;
 }
 
@@ -41,8 +72,12 @@ async function uploadDirectToCloudinary(file: File, folder: string): Promise<str
   formData.append("signature", signature);
   formData.append("folder", signedFolder);
 
+  // Determine resource type based on file type
+  const isVideo = file.type.startsWith('video/');
+  const resourceType = isVideo ? 'video' : 'image';
+
   const response = await fetch(
-    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+    `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
     { method: "POST", body: formData }
   );
 
@@ -78,6 +113,22 @@ export async function uploadImageFile(
   folder = "products"
 ): Promise<string> {
   const validationError = validateImageFile(file);
+  if (validationError) throw new Error(validationError);
+
+  try {
+    return await uploadDirectToCloudinary(file, folder);
+  } catch (directError) {
+    console.warn("Direct Cloudinary upload failed, using server:", directError);
+    return uploadViaServer(file, folder);
+  }
+}
+
+/** Upload image or video — accepts both media types. */
+export async function uploadMediaFile(
+  file: File,
+  folder = "products"
+): Promise<string> {
+  const validationError = validateMediaFile(file);
   if (validationError) throw new Error(validationError);
 
   try {

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { uploadImageBuffer } from "@/lib/cloudinary/upload";
 
-const MAX_SIZE_MB = 10;
+const MAX_IMAGE_SIZE_MB = 10;
+const MAX_VIDEO_SIZE_MB = 100;
 
 export const maxDuration = 60;
 
@@ -14,9 +15,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "No file uploaded" }, { status: 400 });
     }
 
-    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+    // Determine if it's a video or image
+    const isVideo = file.type.startsWith('video/');
+    const maxSize = isVideo ? MAX_VIDEO_SIZE_MB : MAX_IMAGE_SIZE_MB;
+
+    if (file.size > maxSize * 1024 * 1024) {
       return NextResponse.json(
-        { success: false, error: `Image must be smaller than ${MAX_SIZE_MB}MB.` },
+        { success: false, error: `${isVideo ? 'Video' : 'Image'} must be smaller than ${maxSize}MB.` },
         { status: 400 }
       );
     }
@@ -24,8 +29,9 @@ export async function POST(request: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     const folder = (formData.get("folder") as string) || "aesthete";
+    const resourceType = isVideo ? "video" : "image";
 
-    const uploadResult = await uploadImageBuffer(buffer, folder);
+    const uploadResult = await uploadImageBuffer(buffer, folder, resourceType);
 
     if (!uploadResult.success) {
       return NextResponse.json({ success: false, error: uploadResult.error }, { status: 500 });

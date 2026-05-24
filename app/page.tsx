@@ -194,6 +194,12 @@ export default function Home() {
     return url.includes('youtube.com') || url.includes('youtu.be') || getYouTubeVideoId(url) !== null;
   };
 
+  const isVideoFile = (url: string): boolean => {
+    if (!url) return false;
+    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov'];
+    return videoExtensions.some(ext => url.toLowerCase().includes(ext));
+  };
+
   // Show loading state until CMS data is fetched
   if (isLoading || !cmsData) {
     return (
@@ -204,6 +210,7 @@ export default function Home() {
   }
 
   const heroVideoId = isYouTubeUrl(cmsData.heroImage) ? getYouTubeVideoId(cmsData.heroImage) : null;
+  const isHeroVideo = isVideoFile(cmsData.heroImage);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -224,6 +231,19 @@ export default function Home() {
                 transform: 'scale(1.5)', // Zoom to hide controls
               }}
             />
+          ) : isHeroVideo ? (
+            // Direct Video File
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
+            >
+              <source src={cmsData.heroImage} type="video/mp4" />
+              <source src={cmsData.heroImage} type="video/webm" />
+              Your browser does not support the video tag.
+            </video>
           ) : (
             // Image
             <Image

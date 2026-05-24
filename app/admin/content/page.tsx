@@ -53,21 +53,26 @@ export default function ContentPage() {
     setConfirmModal(null);
     setSaving(true);
     setSaved(false);
-    await updateCmsData({
-      heroTitle,
-      heroSubtitle,
-      heroImage,
-      heroCtaText,
-      featuredCategory,
-      promoImage,
-      promoHeading,
-      promoCtaText,
-      promoIntro,
-      featuredNewArrivals,
-    });
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    try {
+      await updateCmsData({
+        heroTitle,
+        heroSubtitle,
+        heroImage,
+        heroCtaText,
+        featuredCategory,
+        promoImage,
+        promoHeading,
+        promoCtaText,
+        promoIntro,
+        featuredNewArrivals,
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      console.error('Publish failed:', err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDiscard = () => {
@@ -342,6 +347,7 @@ export default function ContentPage() {
                       label="Hero Background Visual"
                       aspectClass="aspect-[16/9]"
                       folder="studio"
+                      acceptVideo={true}
                     />
                   </div>
                 </div>
@@ -558,6 +564,61 @@ export default function ContentPage() {
                 transition={{ duration: 0.25 }}
                 className="space-y-8"
               >
+                {/* Promo Banner Section */}
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-2">
+                    <h3 className="text-[20px] font-light text-on-surface italic font-serif">Promo Banner</h3>
+                    <p className="text-[13px] text-on-surface-variant">
+                      This banner is no longer used on the homepage. You can remove this section or repurpose it.
+                    </p>
+                  </div>
+
+                  <div className="bg-surface-container border border-outline-variant p-6 flex flex-col gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      <div>
+                        <AdminImageField
+                          value={promoImage}
+                          onChange={setPromoImage}
+                          label="Promo Visual"
+                          aspectClass="aspect-square"
+                          folder="studio"
+                          emptyLabel="Upload promo image"
+                        />
+                      </div>
+                      <div className="lg:col-span-2 space-y-4">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Promotion Heading</label>
+                          <input
+                            type="text"
+                            value={promoHeading}
+                            onChange={(e) => setPromoHeading(e.target.value)}
+                            className="bg-background border border-outline-variant text-on-surface p-3 font-serif italic text-[16px] focus:outline-none focus:border-primary"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Eyebrow / Series Label</label>
+                          <input
+                            type="text"
+                            value={promoIntro}
+                            onChange={(e) => setPromoIntro(e.target.value)}
+                            className="bg-background border border-outline-variant text-on-surface p-3 text-[11px] font-semibold tracking-widest uppercase focus:outline-none focus:border-primary"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">CTA Button Label</label>
+                          <input
+                            type="text"
+                            value={promoCtaText}
+                            onChange={(e) => setPromoCtaText(e.target.value)}
+                            className="bg-background border border-outline-variant text-on-surface p-3 text-[11px] font-semibold tracking-widest uppercase focus:outline-none focus:border-primary"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Featured Products Section */}
                 <div className="flex flex-col gap-2">
                   <h3 className="text-[20px] font-light text-on-surface italic font-serif">Featured New Arrivals</h3>
                   <p className="text-[13px] text-on-surface-variant">
