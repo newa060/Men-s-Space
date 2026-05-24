@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 interface NavItem {
   href: string;
@@ -18,6 +18,12 @@ const navItems: NavItem[] = [
 
 export default function SideNavBar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/admin/login");
+  };
 
   const isActive = (href: string) => {
     if (href === "/admin/dashboard") return pathname === href;
@@ -95,20 +101,13 @@ export default function SideNavBar() {
 
       {/* Footer actions */}
       <div className="px-6 mt-auto space-y-1">
-        <a
-          href="#"
-          className="flex items-center gap-3 py-2 px-2 text-on-surface-variant hover:text-on-surface text-[12px] tracking-wider transition-colors"
-        >
-          <span className="material-symbols-outlined text-[18px]">help_outline</span>
-          <span>Support</span>
-        </a>
-        <Link
-          href="/sign-in"
-          className="flex items-center gap-3 py-2 px-2 text-on-surface-variant hover:text-error text-[12px] tracking-wider transition-colors"
+        <button
+          onClick={handleSignOut}
+          className="flex items-center gap-3 py-2 px-2 text-on-surface-variant hover:text-error text-[12px] tracking-wider transition-colors w-full"
         >
           <span className="material-symbols-outlined text-[18px]">logout</span>
           <span>Sign Out</span>
-        </Link>
+        </button>
       </div>
     </aside>
   );

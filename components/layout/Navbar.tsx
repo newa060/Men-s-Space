@@ -51,8 +51,8 @@ export default function Navbar() {
                   href={link.href}
                   className={`text-label-caps font-semibold tracking-widest uppercase transition-colors duration-300 ${
                     isActive
-                      ? "text-primary border-b border-primary pb-0.5"
-                      : "text-secondary hover:text-primary"
+                      ? "text-gray-500 border-b border-gray-500 pb-0.5"
+                      : "text-gray-400 hover:text-gray-500"
                   }`}
                 >
                   {link.label}
@@ -82,11 +82,11 @@ export default function Navbar() {
         </div>
 
         {/* Right: Utility Icons */}
-        <div className="flex-1 flex items-center justify-end gap-1">
+        <div className="flex-1 flex items-center justify-end gap-1 text-gray-400">
           <button
             aria-label="Search"
             onClick={openSearch}
-            className="p-2 hover:bg-surface-container transition-colors"
+            className="p-2 hover:text-gray-500 hover:bg-surface-container transition-colors"
           >
             <Search size={20} strokeWidth={1.5} />
           </button>
@@ -94,7 +94,7 @@ export default function Navbar() {
           <button
             aria-label="Shopping Bag"
             onClick={openCart}
-            className="relative p-2 hover:bg-surface-container transition-colors"
+            className="relative p-2 hover:text-gray-500 hover:bg-surface-container transition-colors"
           >
             <ShoppingBag size={20} strokeWidth={1.5} />
             {itemCount > 0 && (
@@ -107,7 +107,7 @@ export default function Navbar() {
           <Link
             href="/profile"
             aria-label="Profile"
-            className="p-2 hover:bg-surface-container transition-colors"
+            className="p-2 hover:text-gray-500 hover:bg-surface-container transition-colors"
           >
             <User size={20} strokeWidth={1.5} />
           </Link>
@@ -116,7 +116,7 @@ export default function Navbar() {
           <button
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
             onClick={() => setMobileOpen((v) => !v)}
-            className="md:hidden p-2 hover:bg-surface-container transition-colors"
+            className="md:hidden p-2 hover:text-gray-500 hover:bg-surface-container transition-colors"
           >
             {mobileOpen ? <X size={20} strokeWidth={1.5} /> : <Menu size={20} strokeWidth={1.5} />}
           </button>
