@@ -1,10 +1,10 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { motion } from "framer-motion";
-import { useRef, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAdmin } from "@/context/AdminContext";
 import type { GalleryItem } from "@/lib/gallery/format";
 import { TestimonialsColumn } from "@/components/ui/testimonials-columns";
@@ -12,100 +12,8 @@ import type { TestimonialItem } from "@/components/ui/testimonials-columns";
 
 export default function Home() {
   const { cmsData } = useAdmin();
-  const sliderRef = useRef<HTMLDivElement>(null);
-  const scrollAnimationRef = useRef<any>(null);
-  const autoplayTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isHoveredRef = useRef(false);
-
-  const animateScroll = (target: number, duration = 1800) => {
-    if (sliderRef.current) {
-      const container = sliderRef.current;
-      
-      if (scrollAnimationRef.current) {
-        cancelAnimationFrame(scrollAnimationRef.current);
-      }
-
-      const start = container.scrollLeft;
-      const change = target - start;
-      let startTime: number | null = null;
-
-      const easeOutCubic = (t: number) => {
-        return 1 - Math.pow(1 - t, 3);
-      };
-
-      const step = (timestamp: number) => {
-        if (!startTime) startTime = timestamp;
-        const elapsed = timestamp - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const easedProgress = easeOutCubic(progress);
-
-        container.scrollLeft = start + change * easedProgress;
-
-        if (progress < 1) {
-          scrollAnimationRef.current = requestAnimationFrame(step);
-        } else {
-          scrollAnimationRef.current = null;
-        }
-      };
-
-      scrollAnimationRef.current = requestAnimationFrame(step);
-    }
-  };
-
-  const scrollSlider = (direction: "left" | "right") => {
-    if (sliderRef.current) {
-      const container = sliderRef.current;
-      const card = container.querySelector("div");
-      const cardWidth = card ? card.clientWidth : 384;
-      const gap = 24;
-      const scrollAmount = cardWidth + gap;
-      
-      const start = container.scrollLeft;
-      const end = direction === "left" ? start - scrollAmount : start + scrollAmount;
-      
-      const maxScroll = container.scrollWidth - container.clientWidth;
-      const target = Math.max(0, Math.min(end, maxScroll));
-      
-      animateScroll(target, 1800);
-      resetAutoplay();
-    }
-  };
-
-  const startAutoplay = () => {
-    stopAutoplay();
-    autoplayTimerRef.current = setInterval(() => {
-      if (isHoveredRef.current) return;
-      if (sliderRef.current) {
-        const container = sliderRef.current;
-        const card = container.querySelector("div");
-        const cardWidth = card ? card.clientWidth : 384;
-        const gap = 24;
-        const scrollAmount = cardWidth + gap;
-        const maxScroll = container.scrollWidth - container.clientWidth;
-        
-        let target = container.scrollLeft + scrollAmount;
-        let duration = 1800;
-
-        if (container.scrollLeft >= maxScroll - 10) {
-          target = 0;
-          duration = 2600;
-        }
-
-        animateScroll(target, duration);
-      }
-    }, 6000);
-  };
-
-  const stopAutoplay = () => {
-    if (autoplayTimerRef.current) {
-      clearInterval(autoplayTimerRef.current);
-      autoplayTimerRef.current = null;
-    }
-  };
-
-  const resetAutoplay = () => {
-    startAutoplay();
-  };
+  // Gallery hover state for pausing the CSS animation
+  const [isGalleryHovered, setIsGalleryHovered] = useState(false);
 
   const [gallerySlides, setGallerySlides] = useState<GalleryItem[]>([]);
 
@@ -120,12 +28,6 @@ export default function Home() {
       .catch(console.error);
   }, []);
 
-  useEffect(() => {
-    if (gallerySlides.length === 0) return;
-    startAutoplay();
-    return () => stopAutoplay();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gallerySlides.length]);
 
   // Dynamic categories derived from active products
   const [categories, setCategories] = useState<{ title: string; image: string; href: string }[]>([]);
@@ -318,55 +220,75 @@ export default function Home() {
 
       {/* ─── Social Gallery Slider ────────────────────────────────── */}
       <section className="bg-surface-container py-24 overflow-hidden w-full">
-        <div className="px-5 md:px-16 max-w-screen-xl mx-auto mb-10 flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <span className="text-label-caps text-secondary uppercase tracking-widest">Instagram</span>
-            <h3 className="text-lg md:text-xl font-medium lowercase text-primary">@aesthete.studio</h3>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => scrollSlider("left")}
-              className="p-3 bg-background hover:bg-primary hover:text-on-primary transition-colors border border-outline-variant"
-              aria-label="Previous posts"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <button
-              onClick={() => scrollSlider("right")}
-              className="p-3 bg-background hover:bg-primary hover:text-on-primary transition-colors border border-outline-variant"
-              aria-label="Next posts"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
+        {/* Header */}
+        <div className="px-5 md:px-16 max-w-screen-xl mx-auto mb-10 flex items-center gap-4">
+          <span className="text-label-caps text-secondary uppercase tracking-widest">Instagram</span>
+          <h3 className="text-lg md:text-xl font-medium lowercase text-primary">@aesthete.studio</h3>
         </div>
 
+        {/* Infinite scroll track */}
         <div
-          ref={sliderRef}
-          onMouseEnter={() => { isHoveredRef.current = true; }}
-          onMouseLeave={() => { isHoveredRef.current = false; }}
-          style={{ scrollBehavior: "auto" }}
-          className="flex gap-6 overflow-x-auto no-scrollbar px-5 md:px-16 cursor-grab active:cursor-grabbing max-w-screen-xl mx-auto"
+          className="overflow-hidden w-full"
+          onMouseEnter={() => setIsGalleryHovered(true)}
+          onMouseLeave={() => setIsGalleryHovered(false)}
         >
-          {gallerySlides.map((slide, index) => (
-            <motion.div
-              key={slide.id}
-              initial={{ opacity: 0, y: 15 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "200px" }}
-              transition={{ duration: 0.6, delay: index * 0.05, ease: "easeOut" }}
-              className="flex-none w-72 md:w-96 aspect-square bg-background relative overflow-hidden group border border-outline-variant/30"
+          {/* Fade edges */}
+          <div className="relative">
+            <div className="absolute left-0 top-0 h-full w-24 z-10 pointer-events-none"
+              style={{ background: "linear-gradient(to right, var(--surface-container), transparent)" }}
+            />
+            <div className="absolute right-0 top-0 h-full w-24 z-10 pointer-events-none"
+              style={{ background: "linear-gradient(to left, var(--surface-container), transparent)" }}
+            />
+
+            {/* Track — two identical copies for seamless loop */}
+            <div
+              className="flex gap-6"
+              style={{
+                width: "max-content",
+                animation: "galleryScroll 40s linear infinite",
+                animationPlayState: isGalleryHovered ? "paused" : "running",
+                willChange: "transform",
+              }}
             >
-              <Image
-                src={slide.image}
-                alt={slide.title}
-                fill
-                unoptimized
-                className="object-cover grayscale brightness-90 group-hover:grayscale-0 group-hover:scale-[1.02] transition-all duration-700"
-                sizes="(max-width: 768px) 288px, 384px"
-              />
-            </motion.div>
-          ))}
+              {/* First copy */}
+              {gallerySlides.map((slide, index) => (
+                <div
+                  key={`a-${slide.id}`}
+                  className="flex-none w-72 md:w-80 aspect-square bg-background relative overflow-hidden group border border-outline-variant/30 cursor-pointer"
+                >
+                  <Image
+                    src={slide.image}
+                    alt={slide.title}
+                    fill
+                    unoptimized
+                    className="object-cover grayscale brightness-90 group-hover:grayscale-0 group-hover:scale-[1.04] transition-all duration-700 ease-out"
+                    sizes="320px"
+                  />
+                  {/* Subtle overlay on hover */}
+                  <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/5 transition-all duration-700" />
+                </div>
+              ))}
+              {/* Second copy — makes the loop invisible */}
+              {gallerySlides.map((slide, index) => (
+                <div
+                  key={`b-${slide.id}`}
+                  className="flex-none w-72 md:w-80 aspect-square bg-background relative overflow-hidden group border border-outline-variant/30 cursor-pointer"
+                  aria-hidden="true"
+                >
+                  <Image
+                    src={slide.image}
+                    alt={slide.title}
+                    fill
+                    unoptimized
+                    className="object-cover grayscale brightness-90 group-hover:grayscale-0 group-hover:scale-[1.04] transition-all duration-700 ease-out"
+                    sizes="320px"
+                  />
+                  <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/5 transition-all duration-700" />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 

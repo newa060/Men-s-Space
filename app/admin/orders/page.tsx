@@ -27,9 +27,118 @@ export default function OrdersPage() {
   const [batchStatus, setBatchStatus] = useState<Order["status"]>("PROCESSING");
   const [batchLoading, setBatchLoading] = useState(false);
 
+  // Date filter state
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePreset, setDatePreset] = useState<string>("ALL");
+  const [customStartDate, setCustomStartDate] = useState<string>("");
+  const [customEndDate, setCustomEndDate] = useState<string>("");
+
+  // Advanced filter state
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [minItems, setMinItems] = useState("");
+  const [maxItems, setMaxItems] = useState("");
+
+  const getDateRangeLabel = () => {
+    if (datePreset === "ALL") return "ALL TIME";
+    if (datePreset === "TODAY") return "TODAY";
+    if (datePreset === "YESTERDAY") return "YESTERDAY";
+    if (datePreset === "LAST_7") return "LAST 7 DAYS";
+    if (datePreset === "LAST_30") return "LAST 30 DAYS";
+    if (datePreset === "THIS_MONTH") return "THIS MONTH";
+    if (datePreset === "LAST_MONTH") return "LAST MONTH";
+    if (datePreset === "CUSTOM") {
+      if (customStartDate && customEndDate) {
+        const startStr = new Date(customStartDate).toLocaleDateString("en-US", { month: "short", day: "2-digit" });
+        const endStr = new Date(customEndDate).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+        return `${startStr} - ${endStr}`.toUpperCase();
+      }
+      return "CUSTOM RANGE";
+    }
+    return "DATE RANGE";
+  };
+
   const filteredOrders = orders.filter((o) => {
-    if (activeTab === "ALL") return true;
-    return o.status === activeTab;
+    if (activeTab !== "ALL" && o.status !== activeTab) return false;
+
+    // Date Filter
+    if (datePreset !== "ALL") {
+      const orderDate = new Date(o.date);
+      orderDate.setHours(0, 0, 0, 0);
+
+      let start: Date | null = null;
+      let end: Date | null = null;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (datePreset === "TODAY") {
+        start = today;
+        end = new Date(today);
+        end.setHours(23, 59, 59, 999);
+      } else if (datePreset === "YESTERDAY") {
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        start = yesterday;
+        end = new Date(yesterday);
+        end.setHours(23, 59, 59, 999);
+      } else if (datePreset === "LAST_7") {
+        const past7 = new Date(today);
+        past7.setDate(past7.getDate() - 7);
+        start = past7;
+        end = new Date(today);
+        end.setHours(23, 59, 59, 999);
+      } else if (datePreset === "LAST_30") {
+        const past30 = new Date(today);
+        past30.setDate(past30.getDate() - 30);
+        start = past30;
+        end = new Date(today);
+        end.setHours(23, 59, 59, 999);
+      } else if (datePreset === "THIS_MONTH") {
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        start = firstDay;
+        end = new Date(today);
+        end.setHours(23, 59, 59, 999);
+      } else if (datePreset === "LAST_MONTH") {
+        const firstDayLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const lastDayLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+        start = firstDayLastMonth;
+        end = lastDayLastMonth;
+        end.setHours(23, 59, 59, 999);
+      } else if (datePreset === "CUSTOM") {
+        if (customStartDate) {
+          start = new Date(customStartDate);
+          start.setHours(0, 0, 0, 0);
+        }
+        if (customEndDate) {
+          end = new Date(customEndDate);
+          end.setHours(23, 59, 59, 999);
+        }
+      }
+
+      if (start && orderDate < start) return false;
+      if (end && orderDate > end) return false;
+    }
+
+    // Search Query
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const idMatch = o.id.toLowerCase().includes(q);
+      const nameMatch = o.customerName.toLowerCase().includes(q);
+      const itemsMatch = o.items.toLowerCase().includes(q);
+      if (!idMatch && !nameMatch && !itemsMatch) return false;
+    }
+
+    // Price Range
+    if (minPrice !== "" && o.totalPrice < Number(minPrice)) return false;
+    if (maxPrice !== "" && o.totalPrice > Number(maxPrice)) return false;
+
+    // Items Count Range
+    if (minItems !== "" && o.itemsCount < Number(minItems)) return false;
+    if (maxItems !== "" && o.itemsCount > Number(maxItems)) return false;
+
+    return true;
   });
 
   // ── Export CSV ──────────────────────────────────────────────
@@ -80,7 +189,7 @@ export default function OrdersPage() {
   const handleProcessBatch = async () => {
     if (selectedIds.size === 0) return;
     setBatchLoading(true);
-    await Promise.all([...selectedIds].map((id) => updateOrderStatus(id, batchStatus)));
+    await Promise.all(Array.from(selectedIds).map((id) => updateOrderStatus(id, batchStatus)));
     setBatchLoading(false);
     setSelectedIds(new Set());
     setBatchModalOpen(false);
@@ -160,13 +269,207 @@ export default function OrdersPage() {
               ))}
             </div>
             <div className="flex items-center gap-4 text-on-surface-variant">
-              <div className="flex items-center gap-2 px-3 py-1.5 border border-outline-variant text-[10px] font-bold tracking-widest uppercase cursor-pointer hover:border-outline transition-colors">
-                <span className="material-symbols-outlined text-[16px]">calendar_today</span>
-                Aug 01 - Aug 31, 2024
+              {/* Date Filter Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setShowDatePicker(!showDatePicker);
+                    setShowAdvancedFilters(false);
+                  }}
+                  className={`flex items-center gap-2 px-3 py-1.5 border text-[10px] font-bold tracking-widest uppercase transition-colors ${
+                    showDatePicker || datePreset !== "ALL"
+                      ? "border-primary text-primary"
+                      : "border-outline-variant hover:border-outline"
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[16px]">calendar_today</span>
+                  {getDateRangeLabel()}
+                </button>
+
+                {showDatePicker && (
+                  <div className="absolute right-0 mt-2 z-50 bg-surface-container-high border border-outline-variant shadow-2xl p-4 min-w-[260px] flex flex-col gap-3 animate-fade-in-up">
+                    <div className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest border-b border-outline-variant/30 pb-2 mb-1">
+                      Select Date Range
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-[10px]">
+                      {[
+                        { value: "ALL", label: "ALL TIME" },
+                        { value: "TODAY", label: "TODAY" },
+                        { value: "YESTERDAY", label: "YESTERDAY" },
+                        { value: "LAST_7", label: "LAST 7 DAYS" },
+                        { value: "LAST_30", label: "LAST 30 DAYS" },
+                        { value: "THIS_MONTH", label: "THIS MONTH" },
+                        { value: "LAST_MONTH", label: "LAST MONTH" },
+                        { value: "CUSTOM", label: "CUSTOM RANGE" },
+                      ].map((preset) => (
+                        <button
+                          key={preset.value}
+                          onClick={() => setDatePreset(preset.value)}
+                          className={`px-2 py-1.5 text-center border text-[9px] font-semibold tracking-wider uppercase transition-colors ${
+                            datePreset === preset.value
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-outline-variant text-on-surface-variant hover:border-outline hover:text-on-surface"
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {datePreset === "CUSTOM" && (
+                      <div className="flex flex-col gap-2 border-t border-outline-variant/30 pt-3 mt-1">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[8px] font-bold text-on-surface-variant uppercase tracking-wider">Start Date</label>
+                          <input
+                            type="date"
+                            value={customStartDate}
+                            onChange={(e) => setCustomStartDate(e.target.value)}
+                            className="bg-surface border border-outline-variant text-[11px] px-2 py-1 text-on-surface focus:outline-none focus:border-primary w-full"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[8px] font-bold text-on-surface-variant uppercase tracking-wider">End Date</label>
+                          <input
+                            type="date"
+                            value={customEndDate}
+                            onChange={(e) => setCustomEndDate(e.target.value)}
+                            className="bg-surface border border-outline-variant text-[11px] px-2 py-1 text-on-surface focus:outline-none focus:border-primary w-full"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 border-t border-outline-variant/30 pt-3 mt-1">
+                      <button
+                        onClick={() => {
+                          setDatePreset("ALL");
+                          setCustomStartDate("");
+                          setCustomEndDate("");
+                          setShowDatePicker(false);
+                        }}
+                        className="flex-1 py-1.5 border border-outline-variant text-[9px] font-bold tracking-widest uppercase text-on-surface-variant hover:bg-surface-container-highest transition-all"
+                      >
+                        Reset
+                      </button>
+                      <button
+                        onClick={() => setShowDatePicker(false)}
+                        className="flex-1 py-1.5 bg-primary text-on-primary text-[9px] font-bold tracking-widest uppercase hover:opacity-90 transition-all"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 border border-outline-variant text-[10px] font-bold tracking-widest uppercase cursor-pointer hover:border-outline transition-colors">
-                <span className="material-symbols-outlined text-[16px]">filter_list</span>
-                Advanced Filters
+
+              {/* Advanced Filters Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setShowAdvancedFilters(!showAdvancedFilters);
+                    setShowDatePicker(false);
+                  }}
+                  className={`flex items-center gap-2 px-3 py-1.5 border text-[10px] font-bold tracking-widest uppercase transition-colors ${
+                    showAdvancedFilters || searchQuery || minPrice || maxPrice || minItems || maxItems
+                      ? "border-primary text-primary"
+                      : "border-outline-variant hover:border-outline"
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[16px]">filter_list</span>
+                  Advanced Filters
+                  {(searchQuery || minPrice || maxPrice || minItems || maxItems) && (
+                    <span className="ml-1 bg-primary text-on-primary rounded-full w-3.5 h-3.5 flex items-center justify-center text-[8px] font-bold">
+                      !
+                    </span>
+                  )}
+                </button>
+
+                {showAdvancedFilters && (
+                  <div className="absolute right-0 mt-2 z-50 bg-surface-container-high border border-outline-variant shadow-2xl p-5 min-w-[300px] flex flex-col gap-4 animate-fade-in-up">
+                    <div className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest border-b border-outline-variant/30 pb-2">
+                      Advanced Filters
+                    </div>
+
+                    {/* Search Input */}
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[8px] font-bold text-on-surface-variant uppercase tracking-wider">Search Orders</label>
+                      <input
+                        type="text"
+                        placeholder="Search ID, Customer, Items..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="bg-surface border border-outline-variant text-[11px] px-2.5 py-1.5 text-on-surface focus:outline-none focus:border-primary placeholder-on-surface-variant/40"
+                      />
+                    </div>
+
+                    {/* Price Range */}
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[8px] font-bold text-on-surface-variant uppercase tracking-wider">Price Range ($)</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          placeholder="Min"
+                          value={minPrice}
+                          onChange={(e) => setMinPrice(e.target.value)}
+                          className="w-full bg-surface border border-outline-variant text-[11px] px-2.5 py-1.5 text-on-surface focus:outline-none focus:border-primary placeholder-on-surface-variant/40"
+                        />
+                        <span className="text-[10px] text-on-surface-variant/50">—</span>
+                        <input
+                          type="number"
+                          placeholder="Max"
+                          value={maxPrice}
+                          onChange={(e) => setMaxPrice(e.target.value)}
+                          className="w-full bg-surface border border-outline-variant text-[11px] px-2.5 py-1.5 text-on-surface focus:outline-none focus:border-primary placeholder-on-surface-variant/40"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Items Count Range */}
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[8px] font-bold text-on-surface-variant uppercase tracking-wider">Items Count</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          placeholder="Min"
+                          value={minItems}
+                          onChange={(e) => setMinItems(e.target.value)}
+                          className="w-full bg-surface border border-outline-variant text-[11px] px-2.5 py-1.5 text-on-surface focus:outline-none focus:border-primary placeholder-on-surface-variant/40"
+                        />
+                        <span className="text-[10px] text-on-surface-variant/50">—</span>
+                        <input
+                          type="number"
+                          placeholder="Max"
+                          value={maxItems}
+                          onChange={(e) => setMaxItems(e.target.value)}
+                          className="w-full bg-surface border border-outline-variant text-[11px] px-2.5 py-1.5 text-on-surface focus:outline-none focus:border-primary placeholder-on-surface-variant/40"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Buttons */}
+                    <div className="flex gap-2 border-t border-outline-variant/30 pt-3 mt-1">
+                      <button
+                        onClick={() => {
+                          setSearchQuery("");
+                          setMinPrice("");
+                          setMaxPrice("");
+                          setMinItems("");
+                          setMaxItems("");
+                          setShowAdvancedFilters(false);
+                        }}
+                        className="flex-1 py-1.5 border border-outline-variant text-[9px] font-bold tracking-widest uppercase text-on-surface-variant hover:bg-surface-container-highest transition-all"
+                      >
+                        Reset
+                      </button>
+                      <button
+                        onClick={() => setShowAdvancedFilters(false)}
+                        className="flex-1 py-1.5 bg-primary text-on-primary text-[9px] font-bold tracking-widest uppercase hover:opacity-90 transition-all"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
