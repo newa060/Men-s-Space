@@ -469,7 +469,18 @@ export default function Home() {
         {/* Header */}
         <div className="px-5 md:px-16 max-w-screen-xl mx-auto mb-10 flex items-center gap-4">
           <span className="text-label-caps text-secondary uppercase tracking-widest">Instagram</span>
-          <h3 className="text-lg md:text-xl font-medium lowercase text-primary">@aesthete.studio</h3>
+          {cmsData.storeInstagram ? (
+            <a
+              href={`https://instagram.com/${cmsData.storeInstagram.replace(/^@/, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-lg md:text-xl font-medium lowercase text-primary hover:text-secondary transition-colors"
+            >
+              @{cmsData.storeInstagram.replace(/^@/, '')}
+            </a>
+          ) : (
+            <h3 className="text-lg md:text-xl font-medium lowercase text-primary">@aesthete.studio</h3>
+          )}
         </div>
 
         {/* Infinite scroll track */}

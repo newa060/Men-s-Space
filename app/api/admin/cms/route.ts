@@ -51,12 +51,45 @@ export async function PUT(request: Request) {
     if (body.storeLocationUrl !== undefined) dbUpdates.store_location_url = body.storeLocationUrl;
     if (body.storeFacebook !== undefined) dbUpdates.store_facebook = body.storeFacebook;
     if (body.featuredNewArrivals !== undefined) dbUpdates.featured_new_arrivals = body.featuredNewArrivals;
-    
-    const { data: updatedCms, error } = await supabase
+
+    // Check if the row exists first
+    const { data: existing } = await supabase
       .from("cms_settings")
-      .upsert({ id: "global", ...dbUpdates }, { onConflict: "id" })
-      .select()
+      .select("id")
+      .eq("id", "global")
       .single();
+
+    let updatedCms;
+    let error;
+
+    if (existing) {
+      // Row exists — just UPDATE the changed fields
+      const result = await supabase
+        .from("cms_settings")
+        .update(dbUpdates)
+        .eq("id", "global")
+        .select()
+        .single();
+      updatedCms = result.data;
+      error = result.error;
+    } else {
+      // Row doesn't exist — INSERT with defaults for required fields
+      const result = await supabase
+        .from("cms_settings")
+        .insert({
+          id: "global",
+          hero_title: DEFAULT_CMS.heroTitle,
+          hero_subtitle: DEFAULT_CMS.heroSubtitle,
+          hero_image: DEFAULT_CMS.heroImage,
+          hero_cta_text: DEFAULT_CMS.heroCtaText,
+          featured_category: DEFAULT_CMS.featuredCategory,
+          ...dbUpdates,
+        })
+        .select()
+        .single();
+      updatedCms = result.data;
+      error = result.error;
+    }
 
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
