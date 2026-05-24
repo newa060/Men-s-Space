@@ -40,23 +40,39 @@ export async function middleware(request: NextRequest) {
   const { supabaseResponse, user, supabase } = await updateSession(request);
 
   // 3. Admin routes protection (/admin/*)
-  if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
-    if (!user) {
-      const loginUrl = new URL("/admin/login", request.url);
-      loginUrl.searchParams.set("redirect", pathname);
-      return NextResponse.redirect(loginUrl);
-    }
+  if (pathname.startsWith("/admin")) {
+    if (pathname === "/admin/login") {
+      // If already logged in as admin, skip the login page
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single();
 
-    // Fetch user profile to verify role
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+        if (profile?.role === "admin") {
+          const redirect = request.nextUrl.searchParams.get("redirect") || "/admin/dashboard";
+          return NextResponse.redirect(new URL(redirect, request.url));
+        }
+      }
+    } else {
+      if (!user) {
+        const loginUrl = new URL("/admin/login", request.url);
+        loginUrl.searchParams.set("redirect", pathname);
+        return NextResponse.redirect(loginUrl);
+      }
 
-    if (!profile || profile.role !== "admin") {
-      // Redirect customers attempting to reach admin dashboard to homepage
-      return NextResponse.redirect(new URL("/", request.url));
+      // Fetch user profile to verify role
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile || profile.role !== "admin") {
+        // Redirect customers attempting to reach admin dashboard to homepage
+        return NextResponse.redirect(new URL("/", request.url));
+      }
     }
   }
 
