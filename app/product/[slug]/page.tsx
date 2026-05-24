@@ -1,11 +1,11 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useCart } from "@/context/CartContext";
 import { Shield, Truck } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Product } from "@/context/AdminContext";
 import { resolveColorHex } from "@/components/admin/productColorUtils";
 
@@ -18,6 +18,9 @@ export default function ProductPage() {
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState("M");
   const [selectedColor, setSelectedColor] = useState("Default");
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [slideDirection, setSlideDirection] = useState(1);
+  const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
     fetch(`/api/products/${slug}`)
@@ -118,26 +121,102 @@ export default function ProductPage() {
         </section>
 
         {/* ── Center: Gallery ── */}
-        <section className="md:col-span-6 space-y-4 order-1 md:order-2">
-          {gallery.map((src, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-              className="aspect-[4/5] bg-surface-container relative overflow-hidden group border border-outline-variant/20"
+        <section className="md:col-span-6 order-1 md:order-2">
+          {/* Mobile: single-image slider */}
+          <div className="block md:hidden">
+            <div
+              className="relative aspect-[4/5] bg-surface-container overflow-hidden border border-outline-variant/20 -mx-5"
+              onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+              onTouchEnd={(e) => {
+                if (touchStartX.current === null) return;
+                const diff = touchStartX.current - e.changedTouches[0].clientX;
+                if (Math.abs(diff) > 40) {
+                  if (diff > 0 && activeSlide < gallery.length - 1) {
+                    setSlideDirection(1);
+                    setActiveSlide((p) => p + 1);
+                  } else if (diff < 0 && activeSlide > 0) {
+                    setSlideDirection(-1);
+                    setActiveSlide((p) => p - 1);
+                  }
+                }
+                touchStartX.current = null;
+              }}
             >
-              <Image
-                src={src}
-                alt={`${product.name} view ${index + 1}`}
-                fill
-                className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700 ease-out"
-                sizes="(max-width: 768px) 100vw, 50vw"
-                priority={index === 0}
-              />
-            </motion.div>
-          ))}
+              <AnimatePresence initial={false} custom={slideDirection} mode="popLayout">
+                <motion.div
+                  key={activeSlide}
+                  custom={slideDirection}
+                  variants={{
+                    enter: (dir: number) => ({ x: dir > 0 ? "100%" : "-100%", opacity: 0 }),
+                    center: { x: 0, opacity: 1 },
+                    exit: (dir: number) => ({ x: dir > 0 ? "-100%" : "100%", opacity: 0 }),
+                  }}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.45, ease: [0.32, 0, 0.67, 0] }}
+                  className="absolute inset-0"
+                >
+                  <Image
+                    src={gallery[activeSlide]}
+                    alt={`${product.name} view ${activeSlide + 1}`}
+                    fill
+                    className="object-cover"
+                    sizes="100vw"
+                    priority={activeSlide === 0}
+                  />
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Slide counter */}
+              {gallery.length > 1 && (
+                <span className="absolute top-3 right-4 text-[10px] tracking-widest text-white/80 bg-black/30 px-2 py-0.5 backdrop-blur-sm">
+                  {activeSlide + 1} / {gallery.length}
+                </span>
+              )}
+            </div>
+
+            {/* Dot indicators */}
+            {gallery.length > 1 && (
+              <div className="flex justify-center gap-2 mt-3">
+                {gallery.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => { setSlideDirection(i > activeSlide ? 1 : -1); setActiveSlide(i); }}
+                    className={`transition-all duration-300 rounded-full ${
+                      i === activeSlide
+                        ? "w-5 h-1.5 bg-primary"
+                        : "w-1.5 h-1.5 bg-outline-variant"
+                    }`}
+                    aria-label={`Go to image ${i + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Desktop: vertical stack */}
+          <div className="hidden md:flex flex-col space-y-4">
+            {gallery.map((src, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8 }}
+                className="aspect-[4/5] bg-surface-container relative overflow-hidden group border border-outline-variant/20"
+              >
+                <Image
+                  src={src}
+                  alt={`${product.name} view ${index + 1}`}
+                  fill
+                  className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700 ease-out"
+                  sizes="50vw"
+                  priority={index === 0}
+                />
+              </motion.div>
+            ))}
+          </div>
         </section>
 
         {/* ── Right: Actions ── */}
